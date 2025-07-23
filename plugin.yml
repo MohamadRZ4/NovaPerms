@@ -1,0 +1,7 @@
+---
+name: StellarRanks
+version: 0.0.1
+main: MohamadRZ\StellarRanks\StellarRanks
+api: 5.30.2
+src-namespace-prefix: MohamadRZ\StellarRanks
+...
