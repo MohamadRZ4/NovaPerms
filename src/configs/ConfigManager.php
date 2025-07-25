@@ -11,7 +11,9 @@ use pocketmine\utils\Config;
     public function __construct(string $dataPath)
     {
         $this->dataPath = $dataPath;
-        $this->config = new Config($dataPath . "config.yml", Config::YAML, ["default_rank" => "guest"]);
+        $this->config = new Config($dataPath . "config.yml", Config::YAML, [
+            "default_rank" => "guest",
+        ]);
     }
 
     public function getDefaultRank(): string

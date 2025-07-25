@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks;
+namespace MohamadRZ\StellarRanks\utils;
 
 use DateTime;
 use DateTimeZone;
@@ -11,7 +11,7 @@ use Exception;
  * StellarUtils class provides utility functions for handling time-related operations.
  * All functions are designed to be robust, reusable, and handle edge cases with proper error handling.
  */
-class StellarUtils
+class TimeUtils
 {
     /**
      * Get the current timestamp in seconds since Unix epoch.

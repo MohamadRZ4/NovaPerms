@@ -19,17 +19,15 @@ class StellarListener implements Listener
         }
     }
 
+    /**
+     * @priority HIGHEST
+     */
     public function onChat(PlayerChatEvent $event): void
     {
         $player = $event->getPlayer();
         $playerName = $player->getName();
 
-        $rankName = StellarRanks::getPlayerConfig()->getHighestRank($playerName);
-        $rank = StellarRanks::getRanksConfig()->getRank($rankName);
-        $chatPrefix = $rank["prefix"]["chat"];
-        $chatSuffix = $rank["suffix"]["chat"];
-        $chatFormat = $rank["chatFormat"];
-         
+
     }
 
 }

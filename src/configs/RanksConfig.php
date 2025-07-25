@@ -12,19 +12,8 @@ use pocketmine\utils\Config;
         $this->config = new Config($dataPath . "ranks.yml", Config::YAML, [
             "guest" => [
                 "displayName" => "Guest",
-                "prefix" => [
-                    "chat" => "[Guest] ",
-                    "nametag" => "[Guest] "
-                ],
-                "suffix" => [
-                    "chat" => "",
-                    "nametag" => ""
-                ],
-                "color" => [
-                    "nametag" => "§7",
-                    "chatname" => "§7"
-                ],
-                "chatFormat" => ": §7",
+                "prefix" => "[Guest]",
+                "suffix" => "",
                 "weight" => 0,
                 "permissions" => []
             ]
@@ -37,19 +26,8 @@ use pocketmine\utils\Config;
 
         $data = [
             "displayName" => $name,
-            "prefix" => [
-                "chat" => "[$name] ",
-                "nametag" => "[$name] "
-            ],
-            "suffix" => [
-                "chat" => "",
-                "nametag" => ""
-            ],
-            "color" => [
-                "nametag" => "§7",
-                "chatname" => "§7"
-            ],
-            "chatFormat" => ": §7",
+            "prefix" => "[$name]",
+            "suffix" => "",
             "weight" => 0,
             "permissions" => []
         ];
