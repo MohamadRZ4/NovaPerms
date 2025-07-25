@@ -2,6 +2,7 @@
 
 namespace MohamadRZ\StellarRanks\commands;
 
+use MohamadRZ\StellarRanks\commands\timing\TimingRootNode;
 use MohamadRZ\StellarRanks\commands\verbose\VerboseRootNode;
 use MohamadRZ\StellarRanks\verbose\VerboseHandler;
 use pocketmine\command\Command;
@@ -23,6 +24,7 @@ class StellarCommand extends Command
     protected function buildTree(): CommandNode
     {
         $root = new RootNode();
+        $root->registerSubCommand(new TimingRootNode());
         //$root->registerSubCommand(new VerboseRootNode($this->verboseHandler)); i cant add PermissionCheckEvent
         return $root;
     }

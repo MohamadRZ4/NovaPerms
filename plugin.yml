@@ -4,4 +4,25 @@ version: 0.0.1
 main: MohamadRZ\StellarRanks\StellarRanks
 api: 5.30.2
 src-namespace-prefix: MohamadRZ\StellarRanks
+
+permissions:
+  stellarranks.*:
+    description: All StellarRanks permissions
+    default: op
+    children:
+      stellarranks.timing: true
+
+  stellarranks.timing:
+    description: Access to timing commands
+    default: op
+    children:
+      stellarranks.timing.toggle: true
+      stellarranks.timing.export: true
+      stellarranks.timing.reset: true
+      stellarranks.timing.stats: true
+      stellarranks.timing.list: true
+
+  stellarranks.timing.toggle:
+    description: Enable/disable timing system
+    default: op
 ...

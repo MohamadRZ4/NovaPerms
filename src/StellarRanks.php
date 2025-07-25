@@ -7,6 +7,7 @@ namespace MohamadRZ\StellarRanks;
 use MohamadRZ\StellarRanks\configs\ConfigManager;
 use MohamadRZ\StellarRanks\configs\PlayerConfig;
 use MohamadRZ\StellarRanks\configs\RanksConfig;
+use MohamadRZ\StellarRanks\timings\Timings;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\SingletonTrait;
 
@@ -17,6 +18,7 @@ class StellarRanks extends PluginBase {
     private static PlayerConfig $playerConfig;
     private static RanksConfig $ranksConfig;
     private static ConfigManager $configManager;
+    private static Timings $timings;
 
     protected function onLoad(): void
     {
@@ -28,6 +30,7 @@ class StellarRanks extends PluginBase {
     {
         self::$datePath = $this->getDataFolder();
         self::$configManager = new ConfigManager(self::$datePath);
+        self::$timings = new Timings(self::$datePath."/timings/", self::$configManager);
         self::$playerConfig = new PlayerConfig(self::$datePath);
         self::$ranksConfig = new RanksConfig(self::$datePath);
 
@@ -68,5 +71,13 @@ class StellarRanks extends PluginBase {
     public static function getConfigManager(): ConfigManager
     {
         return self::$configManager;
+    }
+
+    /**
+     * @return Timings
+     */
+    public static function getStellarTimings(): Timings
+    {
+        return self::$timings;
     }
 }
