@@ -26,8 +26,6 @@ class StellarListener implements Listener
     {
         $player = $event->getPlayer();
         $playerName = $player->getName();
-
-
+        //todo
     }
-
 }
