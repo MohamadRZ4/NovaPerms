@@ -13,8 +13,9 @@ class ConfigManager
     {
         $this->dataPath = $dataPath;
         $this->config = new Config($dataPath . "config.yml", Config::YAML, [
+            "storage-method" => "yaml",
             "default_rank" => "guest",
-            "primary_key" => PrimaryKeys::USERNAME,
+            "primary_key" => PrimaryKeys::USERNAME->value,
             "timing" => [
                 "enabled" => false,
                 "global_bad_threshold" => 100.0,
@@ -40,11 +41,33 @@ class ConfigManager
         };
     }
 
-    public function setPrimaryKey($value): void
+    public function getStorageMethod(): string
     {
-        $this->config->set("primary_key", $value);
-        $this->config->save();
+        return $this->config->get("storage-method");
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ########################################################################################
+#                                   === TIMING CONFIGURATION METHODS ===                                #
+########################################################################################
 
     // === TIMING CONFIGURATION METHODS ===
 

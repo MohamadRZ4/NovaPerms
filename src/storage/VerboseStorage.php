@@ -2,6 +2,7 @@
 
 namespace MohamadRZ\StellarRanks\storage;
 
+use MohamadRZ\StellarRanks\StellarRanks;
 use MohamadRZ\StellarRanks\verbose\session\VerboseSession;
 
 final class VerboseStorage {
@@ -9,7 +10,7 @@ final class VerboseStorage {
     private string $dataPath;
 
     public function __construct() {
-        $this->dataPath = '/verbose/';
+        $this->dataPath = StellarRanks::getDatePath().'/verbose/';
         @mkdir($this->dataPath, 0755, true);
     }
 
