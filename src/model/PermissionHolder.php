@@ -2,7 +2,7 @@
 
 namespace MohamadRZ\NovaPerms\model;
 
-class User
+abstract class PermissionHolder
 {
 
 }

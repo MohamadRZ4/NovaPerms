@@ -27,7 +27,7 @@ class NovaPermsPlugin extends PluginBase {
         $version = $this->getDescription()->getVersion();
         $logo = "     
         
-            §eStellarRanks §f| §bPermission & Ranks System
+            §eNovaPerms §f| §bPermission & Ranks System
                          §7Version §a$version
             ";
 

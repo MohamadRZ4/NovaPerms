@@ -1,102 +1,56 @@
 <?php
-
 namespace MohamadRZ\NovaPerms\model\cache;
-
-use pocketmine\Server;
-
 class CachedLoader
 {
-    /** @var array<string, CacheEntry> */
-    private array $cache = [];
-    private bool $useExpiry = true;
-    private int $maxCacheSize = 1000;
-    private bool $autoClearOffline = true;
-    private int $cacheTimeout = 3600;
+    private string $username;
+    private CacheData $cacheData;
+    private int $lastAccess;
+    private bool $useExpiry;
 
-    public function __construct(array $config = [])
+    public function __construct(string $username, bool $useExpiry = true)
     {
-        $this->useExpiry = $config['use_expiry'] ?? true;
-        $this->maxCacheSize = $config['max_cache_size'] ?? 1000;
-        $this->autoClearOffline = $config['auto_clear_offline'] ?? true;
-        $this->cacheTimeout = $config['cache_timeout'] ?? 3600;
+        $this->username = strtolower($username);
+        $this->useExpiry = $useExpiry;
+        $this->cacheData = new CacheData();
+        $this->lastAccess = time();
     }
 
-    public function load(string $key, callable $dataLoader, ?int $expiryTime = null): mixed
+    public function loadData(mixed $data, ?int $expiryTime = null): void
     {
-        $key = strtolower($key);
-
-        if (isset($this->cache[$key])) {
-            $entry = $this->cache[$key];
-            if (!$this->useExpiry || !$entry->isExpired()) {
-                return $entry->getData();
-            }
-            unset($this->cache[$key]);
-        }
-
-        $data = $dataLoader($key);
-        $this->store($key, $data, $this->useExpiry ? $expiryTime : null);
-
-        return $data;
+        $this->cacheData->setData($data, $this->useExpiry ? $expiryTime : null);
+        $this->lastAccess = time();
     }
 
-    public function store(string $key, mixed $data, ?int $expiryTime = null): void
+    public function get(): mixed
     {
-        $key = strtolower($key);
-
-        $this->manageCacheSize();
-
-        $this->cache[$key] = new CacheEntry($data, $this->useExpiry ? $expiryTime : null);
-    }
-
-    public function get(string $key): mixed
-    {
-        $key = strtolower($key);
-
-        if (isset($this->cache[$key])) {
-            $entry = $this->cache[$key];
-            if (!$this->useExpiry || !$entry->isExpired()) {
-                return $entry->getData();
-            }
-            unset($this->cache[$key]);
+        if ($this->cacheData->getData() !== null && (!$this->useExpiry || !$this->cacheData->isExpired())) {
+            $this->lastAccess = time();
+            return $this->cacheData->getData();
         }
         return null;
     }
 
-    public function remove(string $key): void
+    public function clear(): void
     {
-        $key = strtolower($key);
-        unset($this->cache[$key]);
+        $this->cacheData->clear();
+        $this->lastAccess = time();
     }
 
-    public function clearStaleCache(): void
+    public function isExpired(): bool
     {
-        $currentTime = time();
-        foreach ($this->cache as $key => $entry) {
-            if ($currentTime - $entry->getLastAccess() > $this->cacheTimeout) {
-                unset($this->cache[$key]);
-            }
+        if (!$this->useExpiry) {
+            return false;
         }
+        return $this->cacheData->isExpired();
     }
 
-    private function manageCacheSize(): void
+    public function getUsername(): string
     {
-        if (count($this->cache) >= $this->maxCacheSize) {
-            $entries = $this->cache;
-            uasort($entries, fn($a, $b) => $a->getLastAccess() <=> $b->getLastAccess());
-            $keysToRemove = array_keys(array_slice($entries, 0, count($entries) - $this->maxCacheSize + 10));
-            foreach ($keysToRemove as $key) {
-                unset($this->cache[$key]);
-            }
-        }
+        return $this->username;
     }
 
-    public function clearCache(): void
+    public function getLastAccess(): int
     {
-        $this->cache = [];
-    }
-
-    public function getCacheSize(): int
-    {
-        return count($this->cache);
+        return $this->lastAccess;
     }
 }

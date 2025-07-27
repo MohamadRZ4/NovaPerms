@@ -1,30 +1,26 @@
 <?php
-
 namespace MohamadRZ\NovaPerms\model\cache;
 
-class CacheEntry
+class CacheData
 {
-    private mixed $data;
-    private ?int $expiryTime;
-    private int $lastAccess;
+    private mixed $data = null;
+    private ?int $expiryTime = null;
 
-    public function __construct(mixed $data, ?int $expiryTime = null)
+    public function __construct(mixed $data = null, ?int $expiryTime = null)
     {
         $this->data = $data;
         $this->expiryTime = $expiryTime;
-        $this->lastAccess = time();
     }
 
     public function getData(): mixed
     {
-        $this->lastAccess = time();
         return $this->data;
     }
 
-    public function setData(mixed $data): void
+    public function setData(mixed $data, ?int $expiryTime = null): void
     {
         $this->data = $data;
-        $this->lastAccess = time();
+        $this->expiryTime = $expiryTime;
     }
 
     public function isExpired(): bool
@@ -35,8 +31,9 @@ class CacheEntry
         return time() >= $this->expiryTime;
     }
 
-    public function getLastAccess(): int
+    public function clear(): void
     {
-        return $this->lastAccess;
+        $this->data = null;
+        $this->expiryTime = null;
     }
 }
