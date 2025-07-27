@@ -1,4 +1,4 @@
---- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/MohamadRZ4/StellarRanks
+--- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/MohamadRZ4/NovaPerms
 build-by-default: true
 branches:
 - main
