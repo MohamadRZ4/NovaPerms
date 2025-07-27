@@ -6,23 +6,23 @@ use MohamadRZ\NovaPerms\context\Context;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
 
-class Prefix extends AbstractNode
+class Suffix extends AbstractNode
 {
     private int $priority;
-    private string $prefix;
+    private string $suffix;
 
-    public function __construct(string $prefix, int $priority, bool $value, int $expiry, Context $context)
+    public function __construct(string $suffix, int $priority, bool $value, int $expiry, Context $context)
     {
-        $key = "prefix.$priority.$prefix";
+        $key = "suffix.$priority.$suffix";
         parent::__construct($key, $value, $expiry, $context);
 
-        $this->prefix = $prefix;
+        $this->suffix = $suffix;
         $this->priority = $priority;
     }
 
-    public function getPrefix(): string
+    public function getSuffix(): string
     {
-        return $this->prefix;
+        return $this->suffix;
     }
 
     public function getPriority(): int
@@ -32,15 +32,15 @@ class Prefix extends AbstractNode
 
     public static function fromNodeString(string $key, bool $value, int $expiry, Context $context): ?self
     {
-        if (!str_starts_with($key, 'prefix.')) return null;
+        if (!str_starts_with($key, 'suffix.')) return null;
         $parts = explode('.', $key, 3);
         if (count($parts) !== 3) return null;
         return new self($parts[2], (int)$parts[1], $value, $expiry, $context);
     }
 
-    public static function builder(string $prefix, int $priority): AbstractNodeBuilder
+    public static function builder(string $suffix, int $priority): AbstractNodeBuilder
     {
-        return new Builder($prefix, $priority);
+        return new Builder($suffix, $priority);
     }
 }
 
@@ -48,19 +48,19 @@ class Prefix extends AbstractNode
 class Builder extends AbstractNodeBuilder
 {
     private $priority;
-    private $prefix;
-    public function __construct(string $prefix, int $priority)
+    private $suffix;
+    public function __construct(string $suffix, int $priority)
     {
-        $this->prefix = $prefix;
+        $this->suffix = $suffix;
         $this->priority = $priority;
     }
 
     /**
      * @return self
      */
-    public function prefix($prefix): self
+    public function suffix($prefix): self
     {
-        $this->prefix = $prefix;
+        $this->suffix = $prefix;
         return $this;
     }
 
@@ -75,6 +75,6 @@ class Builder extends AbstractNodeBuilder
 
     public function build(): AbstractNode
     {
-        return new Prefix($this->prefix, $this->priority, $this->getValue(), $this->getExpiry(), $this->getContext());
+        return new Suffix($this->suffix, $this->priority, $this->getValue(), $this->getExpiry(), $this->getContext());
     }
 }

@@ -3,6 +3,9 @@
 namespace MohamadRZ\NovaPerms\model;
 
 
+use MohamadRZ\NovaPerms\node\AbstractNode;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
+
 abstract class PermissionHolder
 {
     protected PermissionManager $permissionManager;
@@ -11,15 +14,15 @@ abstract class PermissionHolder
 
     public function __construct()
     {
-        $this->permissionManager = new PermissionManager();
+        $this->permissionManager = NovaPermsPlugin::getPermissionManager();
     }
 
-    public function addPermission(string $permission): void
+    public function addPermission(AbstractNode $permission): void
     {
         $this->permissionManager->addPermission($this->holderType, $this->holderId, $permission);
     }
 
-    public function removePermission(string $permission): void
+    public function removePermission(AbstractNode $permission): void
     {
         $this->permissionManager->removePermission($this->holderType, $this->holderId, $permission);
     }

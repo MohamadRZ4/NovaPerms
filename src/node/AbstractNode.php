@@ -7,10 +7,10 @@ use MohamadRZ\NovaPerms\context\Context;
 abstract class AbstractNode
 {
 
-    private string $key;
-    private bool $value;
-    private int $expiry;
-    private Context $context;
+    public string $key;
+    public bool $value;
+    public int $expiry;
+    public Context $context;
 
     public function __construct(string $key, bool $value, int $expiry, Context $context)
     {
@@ -51,6 +51,4 @@ abstract class AbstractNode
     {
         return $this->value;
     }
-
-    abstract public function builder($key): AbstractNodeBuilder;
 }

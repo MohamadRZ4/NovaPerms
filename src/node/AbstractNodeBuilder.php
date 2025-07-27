@@ -8,10 +8,10 @@ use MohamadRZ\NovaPerms\utils\Duration;
 abstract class AbstractNodeBuilder
 {
 
-    private string $key;
-    private bool $value = true;
-    private int $expiry = -1;
-    private Context $context;
+    public string $key;
+    public bool $value = true;
+    public int $expiry = -1;
+    public Context $context;
 
 
     /**
@@ -44,6 +44,33 @@ abstract class AbstractNodeBuilder
     public function getValue(): bool
     {
         return $this->value;
+    }
+
+    /**
+     * @param int $expiry
+     */
+    public function expiry(int $expiry): self
+    {
+        $this->expiry = $expiry;
+        return $this;
+    }
+
+    /**
+     * @param string $key
+     */
+    public function key(string $key): self
+    {
+        $this->key = $key;
+        return $this;
+    }
+
+    /**
+     * @param bool $value
+     */
+    public function value(bool $value): self
+    {
+        $this->value = $value;
+        return $this;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace MohamadRZ\NovaPerms\model;
 
 use MohamadRZ\NovaPerms\model\cache\CachedLoader;
 use MohamadRZ\NovaPerms\model\cache\CacheInstance;
+use MohamadRZ\NovaPerms\node\AbstractNode;
 
 class PermissionManager
 {
@@ -21,7 +22,7 @@ class PermissionManager
             ->build();
     }
 
-    public function addPermission(string $holderType, string $holderId, string $permission): void
+    public function addPermission(string $holderType, string $holderId, AbstractNode $permission): void
     {
         $key = $this->getKey($holderType, $holderId);
         $permissions = $this->getPermissions($holderType, $holderId);
@@ -32,7 +33,7 @@ class PermissionManager
         }
     }
 
-    public function removePermission(string $holderType, string $holderId, string $permission): void
+    public function removePermission(string $holderType, string $holderId, AbstractNode $permission): void
     {
         $key = $this->getKey($holderType, $holderId);
         $permissions = $this->getPermissions($holderType, $holderId);
