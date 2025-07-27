@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands;
+namespace MohamadRZ\NovaPerms\commands;
 
 use pocketmine\utils\TextFormat;
 
@@ -11,7 +11,7 @@ class RootNode extends CommandNode {
     }
 
     public function execute($sender, array $args): void {
-        $sender->sendMessage(TextFormat::GOLD . "StellarRanks - Permission Management System");
+        $sender->sendMessage(TextFormat::GOLD . "NovaPerms - Permission Management System");
         $sender->sendMessage(TextFormat::YELLOW . "Available commands:");
 
         $children = $this->getChildren();

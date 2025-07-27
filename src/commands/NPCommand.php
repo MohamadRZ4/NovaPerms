@@ -1,22 +1,23 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands;
+namespace MohamadRZ\NovaPerms\commands;
 
-use MohamadRZ\StellarRanks\commands\timing\TimingRootNode;
-use MohamadRZ\StellarRanks\commands\verbose\VerboseRootNode;
-use MohamadRZ\StellarRanks\verbose\VerboseHandler;
+use MohamadRZ\NovaPerms\commands\timing\TimingRootNode;
+use MohamadRZ\NovaPerms\commands\verbose\VerboseRootNode;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use MohamadRZ\NovaPerms\verbose\VerboseHandler;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 
-class StellarCommand extends Command
+class NPCommand extends Command
 {
     private CommandNode $root;
     private VerboseHandler $verboseHandler;
 
     public function __construct(VerboseHandler $verboseHandler)
     {
-        parent::__construct("stellar", "Manage permissions");
-        $this->setAliases(["sr", "perm", "perms", "permission", "permissions"]);
+        parent::__construct("novaperms", "Manage permissions");
+        $this->setAliases(["np", "perm", "perms", "permission", "permissions"]);
         $this->verboseHandler = $verboseHandler;
         $this->root = $this->buildTree();
     }
@@ -24,7 +25,7 @@ class StellarCommand extends Command
     protected function buildTree(): CommandNode
     {
         $root = new RootNode();
-        $root->registerSubCommand(new TimingRootNode());
+        $root->registerSubCommand(new TimingRootNode(NovaPermsPlugin::getTimings()));
         //$root->registerSubCommand(new VerboseRootNode($this->verboseHandler)); i cant add PermissionCheckEvent
         return $root;
     }

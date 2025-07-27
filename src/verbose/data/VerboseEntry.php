@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose\data;
+namespace MohamadRZ\NovaPerms\verbose\data;
 
 final class VerboseEntry {
 

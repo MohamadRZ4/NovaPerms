@@ -1,9 +1,9 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands\timing;
+namespace MohamadRZ\NovaPerms\commands\timing;
 
-use MohamadRZ\StellarRanks\commands\CommandNode;
-use MohamadRZ\StellarRanks\timings\Timings;
+use MohamadRZ\NovaPerms\commands\CommandNode;
+use MohamadRZ\NovaPerms\timings\Timings;
 use pocketmine\utils\TextFormat;
 
 class TimingToggleNode extends CommandNode
@@ -22,7 +22,7 @@ class TimingToggleNode extends CommandNode
 
     public function execute($sender, array $args): void
     {
-        if (!$sender->hasPermission("stellarranks.timing.toggle")) {
+        if (!$sender->hasPermission("novaperms.timing.toggle")) {
             $sender->sendMessage(TextFormat::RED . "You don't have permission to toggle timing!");
             return;
         }

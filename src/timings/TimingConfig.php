@@ -1,8 +1,8 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\timings;
+namespace MohamadRZ\NovaPerms\timings;
 
-use MohamadRZ\StellarRanks\configs\ConfigManager;
+use MohamadRZ\NovaPerms\configs\ConfigManager;
 
 class TimingConfig
 {

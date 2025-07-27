@@ -1,19 +1,19 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\utils;
+namespace MohamadRZ\NovaPerms\utils;
 
-use MohamadRZ\StellarRanks\StellarRanks;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use pocketmine\scheduler\AsyncTask;
 use pocketmine\scheduler\ClosureTask;
 
 abstract class AsyncInterface
 {
-    protected StellarRanks $plugin;
+    protected NovaPermsPlugin $plugin;
     private bool $forceSync = false;
     private static array $cache = [];
     private static array $cacheTime = [];
 
-    public function __construct(StellarRanks $plugin)
+    public function __construct(NovaPermsPlugin $plugin)
     {
         $this->plugin = $plugin;
     }

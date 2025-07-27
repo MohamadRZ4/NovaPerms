@@ -1,9 +1,9 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands\timing;
+namespace MohamadRZ\NovaPerms\commands\timing;
 
-use MohamadRZ\StellarRanks\commands\CommandNode;
-use MohamadRZ\StellarRanks\timings\Timings;
+use MohamadRZ\NovaPerms\commands\CommandNode;
+use MohamadRZ\NovaPerms\timings\Timings;
 use pocketmine\utils\TextFormat;
 use Exception;
 
@@ -23,7 +23,7 @@ class TimingExportNode extends CommandNode
 
     public function execute($sender, array $args): void
     {
-        if (!$sender->hasPermission("stellarranks.timing.export")) {
+        if (!$sender->hasPermission("novaperms.timing.export")) {
             $sender->sendMessage(TextFormat::RED . "You don't have permission to export timing reports!");
             return;
         }

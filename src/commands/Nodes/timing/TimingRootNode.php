@@ -1,9 +1,9 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands\timing;
+namespace MohamadRZ\NovaPerms\commands\timing;
 
-use MohamadRZ\StellarRanks\commands\CommandNode;
-use MohamadRZ\StellarRanks\timings\Timings;
+use MohamadRZ\NovaPerms\commands\CommandNode;
+use MohamadRZ\NovaPerms\timings\Timings;
 use pocketmine\utils\TextFormat;
 
 class TimingRootNode extends CommandNode
@@ -32,7 +32,7 @@ class TimingRootNode extends CommandNode
 
     public function execute($sender, array $args): void
     {
-        if (!$sender->hasPermission("stellarranks.timing")) {
+        if (!$sender->hasPermission("novaperms.timing")) {
             $sender->sendMessage(TextFormat::RED . "You don't have permission to use timing commands!");
             return;
         }
@@ -40,7 +40,7 @@ class TimingRootNode extends CommandNode
         $isEnabled = $this->timing->isEnabled();
         $sections = $this->timing->getActiveSections();
 
-        $sender->sendMessage(TextFormat::GOLD . "StellarRanks - Timing Management");
+        $sender->sendMessage(TextFormat::GOLD . "NovaPerms - Timing Management");
         $sender->sendMessage(TextFormat::GRAY . "Status: " . ($isEnabled ?
                 TextFormat::GREEN . "Enabled ✓" : TextFormat::RED . "Disabled ✗") .
             TextFormat::GRAY . " | Sections: " . TextFormat::WHITE . count($sections));

@@ -1,9 +1,12 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\storage;
+namespace MohamadRZ\NovaPerms\storage;
 
-use MohamadRZ\StellarRanks\StellarRanks;
-use MohamadRZ\StellarRanks\configs\PrimaryKeys;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use MohamadRZ\NovaPerms\configs\PrimaryKeys;
+use MohamadRZ\NovaPerms\storage\implementations\file\CombinedConfigurateStorage;
+use MohamadRZ\NovaPerms\storage\implementations\file\loaders\YamlLoader;
+use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
 
 class StorageFactory
 {
@@ -14,7 +17,7 @@ class StorageFactory
         self::$implementations[strtolower($name)] = $className;
     }
 
-    public static function createStorage(StellarRanks $plugin, string $type): StorageImplementation
+    public static function createStorage(NovaPermsPlugin $plugin, string $type): StorageImplementation
     {
         $type = strtolower($type);
 
@@ -42,12 +45,6 @@ class StorageFactory
 
     public static function init(): void
     {
-        // Register default implementations
-        self::registerImplementation('yaml', YamlStorage::class);
-        self::registerImplementation('json', JsonStorage::class);
-        // Future implementations can be registered here
-        // self::registerImplementation('mysql', MySqlStorage::class);
-        // self::registerImplementation('sqlite', SqliteStorage::class);
-        // self::registerImplementation('mongodb', MongoDbStorage::class);
+        self::registerImplementation("yml", new CombinedConfigurateStorage(NovaPermsPlugin::getInstance(), "Yaml", new YamlLoader(), "datebase"));
     }
 }

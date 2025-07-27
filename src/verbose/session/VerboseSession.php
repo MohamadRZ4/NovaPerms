@@ -1,10 +1,10 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose\session;
+namespace MohamadRZ\NovaPerms\verbose\session;
 
-use MohamadRZ\StellarRanks\verbose\VerboseMode;
-use MohamadRZ\StellarRanks\verbose\filter\VerboseFilter;
-use MohamadRZ\StellarRanks\verbose\data\VerboseEntry;
+use MohamadRZ\NovaPerms\verbose\VerboseMode;
+use MohamadRZ\NovaPerms\verbose\filter\VerboseFilter;
+use MohamadRZ\NovaPerms\verbose\data\VerboseEntry;
 use pocketmine\player\Player;
 
 final class VerboseSession {

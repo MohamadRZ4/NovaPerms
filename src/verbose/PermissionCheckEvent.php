@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose;
+namespace MohamadRZ\NovaPerms\verbose;
 
 use pocketmine\event\player\PlayerEvent;
 use pocketmine\player\Player;

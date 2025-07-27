@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose\filter;
+namespace MohamadRZ\NovaPerms\verbose\filter;
 
 final class FilterParser {
 

@@ -1,16 +1,16 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\storage;
+namespace MohamadRZ\NovaPerms\storage;
 
-use MohamadRZ\StellarRanks\StellarRanks;
-use MohamadRZ\StellarRanks\verbose\session\VerboseSession;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use MohamadRZ\NovaPerms\verbose\session\VerboseSession;
 
 final class VerboseStorage {
 
     private string $dataPath;
 
     public function __construct() {
-        $this->dataPath = StellarRanks::getDatePath().'/verbose/';
+        $this->dataPath = NovaPermsPlugin::getDatePath().'/verbose/';
         @mkdir($this->dataPath, 0755, true);
     }
 

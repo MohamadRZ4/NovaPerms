@@ -1,8 +1,8 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose\filter;
+namespace MohamadRZ\NovaPerms\verbose\filter;
 
-use MohamadRZ\StellarRanks\verbose\data\VerboseEntry;
+use MohamadRZ\NovaPerms\verbose\data\VerboseEntry;
 
 final class PlayerFilter extends VerboseFilter {
 

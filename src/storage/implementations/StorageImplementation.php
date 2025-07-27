@@ -1,19 +1,19 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\storage;
+namespace MohamadRZ\NovaPerms\storage\implementations;
 
-use MohamadRZ\StellarRanks\model\object\Group;
-use MohamadRZ\StellarRanks\model\object\Track;
-use MohamadRZ\StellarRanks\model\object\User;
-use MohamadRZ\StellarRanks\StellarRanks;
-use MohamadRZ\StellarRanks\configs\PrimaryKeys;
+use MohamadRZ\NovaPerms\model\Group;
+use MohamadRZ\NovaPerms\model\Track;
+use MohamadRZ\NovaPerms\model\User;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use MohamadRZ\NovaPerms\configs\PrimaryKeys;
 
 interface StorageImplementation
 {
     /**
      * Get the plugin instance
      */
-    public function getPlugin(): StellarRanks;
+    public function getPlugin(): NovaPermsPlugin;
 
     /**
      * Get the implementation name

@@ -1,11 +1,11 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands\verbose;
+namespace MohamadRZ\NovaPerms\commands\verbose;
 
-use MohamadRZ\StellarRanks\commands\CommandNode;
-use MohamadRZ\StellarRanks\verbose\VerboseHandler;
-use MohamadRZ\StellarRanks\verbose\VerboseMode;
-use MohamadRZ\StellarRanks\verbose\filter\VerboseFilter;
+use MohamadRZ\NovaPerms\commands\CommandNode;
+use MohamadRZ\NovaPerms\verbose\VerboseHandler;
+use MohamadRZ\NovaPerms\verbose\VerboseMode;
+use MohamadRZ\NovaPerms\verbose\filter\VerboseFilter;
 use pocketmine\player\Player;
 use pocketmine\utils\TextFormat;
 

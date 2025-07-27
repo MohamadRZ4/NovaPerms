@@ -1,9 +1,9 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands\timing;
+namespace MohamadRZ\NovaPerms\commands\timing;
 
-use MohamadRZ\StellarRanks\commands\CommandNode;
-use MohamadRZ\StellarRanks\timings\Timings;
+use MohamadRZ\NovaPerms\commands\CommandNode;
+use MohamadRZ\NovaPerms\timings\Timings;
 use pocketmine\utils\TextFormat;
 
 class TimingStatsNode extends CommandNode
@@ -22,7 +22,7 @@ class TimingStatsNode extends CommandNode
 
     public function execute($sender, array $args): void
     {
-        if (!$sender->hasPermission("stellarranks.timing.stats")) {
+        if (!$sender->hasPermission("novaperms.timing.stats")) {
             $sender->sendMessage(TextFormat::RED . "You don't have permission to view timing statistics!");
             return;
         }

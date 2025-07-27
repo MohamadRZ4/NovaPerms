@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\utils;
+namespace MohamadRZ\NovaPerms\utils;
 
 use DateTime;
 use DateTimeZone;

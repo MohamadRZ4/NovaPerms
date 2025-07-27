@@ -1,8 +1,8 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose\output;
+namespace MohamadRZ\NovaPerms\verbose\output;
 
-use MohamadRZ\StellarRanks\verbose\data\VerboseEntry;
+use MohamadRZ\NovaPerms\verbose\data\VerboseEntry;
 use pocketmine\player\Player;
 use pocketmine\utils\TextFormat;
 

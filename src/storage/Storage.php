@@ -1,20 +1,21 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\storage;
+namespace MohamadRZ\NovaPerms\storage;
 
-use MohamadRZ\StellarRanks\StellarRanks;
-use MohamadRZ\StellarRanks\utils\AsyncInterface;
-use MohamadRZ\StellarRanks\configs\PrimaryKeys;
-use MohamadRZ\StellarRanks\model\object\Group;
-use MohamadRZ\StellarRanks\model\object\Track;
-use MohamadRZ\StellarRanks\model\object\User;
+use MohamadRZ\NovaPerms\model\Group;
+use MohamadRZ\NovaPerms\model\Track;
+use MohamadRZ\NovaPerms\model\User;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
+use MohamadRZ\NovaPerms\utils\AsyncInterface;
+use MohamadRZ\NovaPerms\configs\PrimaryKeys;
 
 abstract class Storage extends AsyncInterface
 {
     protected StorageImplementation $implementation;
     protected PrimaryKeys $primaryKey;
 
-    public function __construct(StellarRanks $plugin)
+    public function __construct(NovaPermsPlugin $plugin)
     {
         parent::__construct($plugin);
         $this->primaryKey = $plugin->getConfigManager()->getPrimaryKey();
@@ -24,7 +25,7 @@ abstract class Storage extends AsyncInterface
         $this->implementation->init();
     }
 
-    public function getPlugin(): StellarRanks
+    public function getPlugin(): NovaPermsPlugin
     {
         return $this->plugin;
     }

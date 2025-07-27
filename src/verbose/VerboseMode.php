@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose;
+namespace MohamadRZ\NovaPerms\verbose;
 
 enum VerboseMode: string {
     case LIVE = 'live';

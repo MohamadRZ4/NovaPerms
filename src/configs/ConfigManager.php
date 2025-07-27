@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\configs;
+namespace MohamadRZ\NovaPerms\configs;
 
 use pocketmine\utils\Config;
 
@@ -34,8 +34,6 @@ class ConfigManager
     {
         $value = $this->config->get("primary_key");
         return match (strtolower($value)) {
-            "uuid" => PrimaryKeys::UUID,
-            "ip" => PrimaryKeys::IP,
             "xuid" => PrimaryKeys::XUID,
             default => PrimaryKeys::USERNAME,
         };

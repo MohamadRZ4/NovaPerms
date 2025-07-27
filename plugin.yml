@@ -1,28 +1,37 @@
 ---
-name: StellarRanks
-version: 0.0.1
-main: MohamadRZ\StellarRanks\StellarRanks
-api: 5.30.2
-src-namespace-prefix: MohamadRZ\StellarRanks
+name: NovaPerms
+version: 0.0.1-dev
+main: MohamadRZ\NovaPerms\NovaPermsPlugin
+api: 5.0.0
+src-namespace-prefix: MohamadRZ\NovaPerms
 
 permissions:
-  stellarranks.*:
-    description: All StellarRanks permissions
+  novaperms.*:
+    description: All NovaPerms permissions
     default: op
-    children:
-      stellarranks.timing: true
 
-  stellarranks.timing:
+  novaperms.timing:
     description: Access to timing commands
     default: op
-    children:
-      stellarranks.timing.toggle: true
-      stellarranks.timing.export: true
-      stellarranks.timing.reset: true
-      stellarranks.timing.stats: true
-      stellarranks.timing.list: true
 
-  stellarranks.timing.toggle:
+  novaperms.timing.toggle:
     description: Enable/disable timing system
     default: op
+
+  novaperms.timing.export:
+    description: Export timing results
+    default: op
+
+  novaperms.timing.reset:
+    description: Reset timings
+    default: op
+
+  novaperms.timing.stats:
+    description: View timing statistics
+    default: op
+
+  novaperms.timing.list:
+    description: List timing reports
+    default: op
+
 ...

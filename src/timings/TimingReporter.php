@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\timings;
+namespace MohamadRZ\NovaPerms\timings;
 
 use RuntimeException;
 

@@ -1,12 +1,12 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\verbose;
+namespace MohamadRZ\NovaPerms\verbose;
 
-use MohamadRZ\StellarRanks\verbose\filter\VerboseFilter;
-use MohamadRZ\StellarRanks\verbose\output\VerboseOutput;
-use MohamadRZ\StellarRanks\verbose\session\VerboseSession;
-use MohamadRZ\StellarRanks\verbose\data\VerboseEntry;
-use MohamadRZ\StellarRanks\storage\VerboseStorage;
+use MohamadRZ\NovaPerms\verbose\filter\VerboseFilter;
+use MohamadRZ\NovaPerms\verbose\output\VerboseOutput;
+use MohamadRZ\NovaPerms\verbose\session\VerboseSession;
+use MohamadRZ\NovaPerms\verbose\data\VerboseEntry;
+use MohamadRZ\NovaPerms\storage\VerboseStorage;
 use pocketmine\event\server\CommandEvent;
 use pocketmine\player\Player;
 use pocketmine\event\Listener;

@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\StellarRanks\commands;
+namespace MohamadRZ\NovaPerms\commands;
 
 abstract class CommandNode
 {
