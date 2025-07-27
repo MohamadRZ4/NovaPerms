@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./icon.png" height="1024" style="border-radius: 50%;" alt="NovaPerms Icon" />
+  <img src="./icon.png" height="128" style="border-radius: 50%;" alt="NovaPerms Icon" />
 </p>
 
 <h1 align="center">NovaPerms</h1>
