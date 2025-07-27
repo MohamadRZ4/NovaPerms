@@ -1,56 +1,59 @@
 <?php
+
 namespace MohamadRZ\NovaPerms\model\cache;
+
+use MohamadRZ\NovaPerms\model\cache\interfaces\CacheProviderInterface;
+use MohamadRZ\NovaPerms\model\cache\interfaces\CacheRegistryInterface;
+
 class CachedLoader
 {
-    private string $username;
-    private CacheData $cacheData;
-    private int $lastAccess;
-    private bool $useExpiry;
+    private static ?CacheRegistryInterface $registry = null;
 
-    public function __construct(string $username, bool $useExpiry = true)
+    private static function getRegistry(): CacheRegistryInterface
     {
-        $this->username = strtolower($username);
-        $this->useExpiry = $useExpiry;
-        $this->cacheData = new CacheData();
-        $this->lastAccess = time();
-    }
-
-    public function loadData(mixed $data, ?int $expiryTime = null): void
-    {
-        $this->cacheData->setData($data, $this->useExpiry ? $expiryTime : null);
-        $this->lastAccess = time();
-    }
-
-    public function get(): mixed
-    {
-        if ($this->cacheData->getData() !== null && (!$this->useExpiry || !$this->cacheData->isExpired())) {
-            $this->lastAccess = time();
-            return $this->cacheData->getData();
+        if (self::$registry === null) {
+            self::$registry = new CacheRegistry();
         }
-        return null;
+        return self::$registry;
     }
 
-    public function clear(): void
+    public static function create(string $name): CacheLoaderBuilder
     {
-        $this->cacheData->clear();
-        $this->lastAccess = time();
+        return new CacheLoaderBuilder($name);
     }
 
-    public function isExpired(): bool
+    public static function register(string $name, CacheProviderInterface $provider): void
     {
-        if (!$this->useExpiry) {
-            return false;
-        }
-        return $this->cacheData->isExpired();
+        self::getRegistry()->register($name, $provider);
     }
 
-    public function getUsername(): string
+    public static function get(string $name): ?CacheInstance
     {
-        return $this->username;
+        return self::getRegistry()->get($name);
     }
 
-    public function getLastAccess(): int
+    public static function has(string $name): bool
     {
-        return $this->lastAccess;
+        return self::getRegistry()->has($name);
+    }
+
+    public static function remove(string $name): bool
+    {
+        return self::getRegistry()->remove($name);
+    }
+
+    public static function clear(): void
+    {
+        self::getRegistry()->clear();
+    }
+
+    public static function getAll(): array
+    {
+        return self::getRegistry()->getAll();
+    }
+
+    public static function setRegistry(CacheRegistryInterface $registry): void
+    {
+        self::$registry = $registry;
     }
 }
