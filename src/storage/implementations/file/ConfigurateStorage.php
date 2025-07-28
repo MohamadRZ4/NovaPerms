@@ -3,6 +3,8 @@
 namespace MohamadRZ\NovaPerms\storage\implementations\file;
 
 use MohamadRZ\NovaPerms\configs\PrimaryKeys;
+use MohamadRZ\NovaPerms\node\serializers\NodeDeserializer;
+use MohamadRZ\NovaPerms\node\serializers\NodeSerializer;
 use MohamadRZ\NovaPerms\node\Types\DisplayName;
 use MohamadRZ\NovaPerms\node\Types\Inheritance;
 use MohamadRZ\NovaPerms\node\Types\Meta;
@@ -136,11 +138,6 @@ class ConfigurateStorage implements StorageImplementation
         }
     }
 
-    public function loadAllTracks(): void
-    {
-        // Track functionality not implemented
-    }
-
     public function loadUser(string $primaryKey, ?string $username = null): User
     {
         $data = $this->readFile(StorageLocation::USERS, $primaryKey);
@@ -185,10 +182,47 @@ class ConfigurateStorage implements StorageImplementation
             'permissions' => []
         ];
 
-        $this->writeNodes($data, $user->getPermissions());
+        $this->writeNodes($data);
         $this->saveFile(StorageLocation::USERS, $user->getPrimaryKey(), $data);
     }
 
+    public function savePlayerData(string $primaryKey, string $username): bool
+    {
+        $user = $this->loadUser($primaryKey, $username);
+        $this->saveUser($user);
+        return true;
+    }
+
+    public function deletePlayerData(string $primaryKey): void
+    {
+        $this->saveFile(StorageLocation::USERS, $primaryKey, null);
+    }
+
+    protected function readNodes(array $rawData): array
+    {
+        return NodeDeserializer::deserialize($rawData);
+    }
+
+    protected function writeNodes(array $data): void
+    {
+        NodeSerializer::serialize($data["permissions"]);
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+    public function loadAllTracks(): void
+    {
+        // Track functionality not implemented
+    }
     public function createAndLoadGroup(string $name): Group
     {
         $group = new Group($name);
@@ -228,7 +262,7 @@ class ConfigurateStorage implements StorageImplementation
             'permissions' => []
         ];
 
-        $this->writeNodes($data, $group->getPermissions());
+        $this->writeNodes($data);
         $this->saveFile(StorageLocation::GROUPS, $group->getName(), $data);
         $this->groupCache[$group->getName()] = $group;
     }
@@ -259,92 +293,5 @@ class ConfigurateStorage implements StorageImplementation
     public function deleteTrack(Track $track): void
     {
         // Track system not implemented
-    }
-
-    public function savePlayerData(string $primaryKey, string $username): bool
-    {
-        $user = $this->loadUser($primaryKey, $username);
-        $this->saveUser($user);
-        return true;
-    }
-
-    public function deletePlayerData(string $primaryKey): void
-    {
-        $this->saveFile(StorageLocation::USERS, $primaryKey, null);
-    }
-
-    protected function readNodes(array $rawData): array
-    {
-        $result = [];
-
-        foreach ($rawData as $permission) {
-            $name = $permission["name"] ?? "";
-            $value = $permission["value"] ?? true;
-            $expire = $permission["expire"] ?? null;
-            $context = $permission["context"] ?? [];
-
-            $parts = explode(".", $name);
-            if (count($parts) === 0) {
-                continue;
-            }
-
-            $type = strtolower($parts[0]);
-            $node = null;
-
-            switch ($type) {
-                case "perfix":
-                    if (count($parts) >= 3) {
-                        $node = Prefix::builder($parts[2], $parts[1]);
-                    }
-                    break;
-
-                case "suffix":
-                    if (count($parts) >= 3) {
-                        $node = Suffix::builder($parts[2], $parts[1]);
-                    }
-                    break;
-
-                case "displayname":
-                    if (count($parts) >= 2) {
-                        $node = DisplayName::builder($parts[1]);
-                    }
-                    break;
-
-                case "group":
-                    if (count($parts) >= 2) {
-                        $node = Inheritance::builder($parts[1]);
-                    }
-                    break;
-
-                case "wight":
-                    if (count($parts) >= 2) {
-                        $node = Weight::builder($parts[1]);
-                    }
-                    break;
-
-                case "meta":
-                    if (count($parts) >= 3) {
-                        $node = Meta::builder($parts[1], $parts[2]);
-                    }
-                    break;
-            }
-
-            if (!$node) {
-                $node = Permission::builder($name);
-            }
-
-            $node->value($value)->expiry($expire);
-
-            $result[] = $node;
-        }
-
-        return $result;
-    }
-
-    protected function writeNodes(array &$data, array $nodes): void
-    {
-        foreach ($nodes as $permission => $value) {
-            $data['permissions'][$permission] = (bool) $value;
-        }
     }
 }

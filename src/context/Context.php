@@ -2,11 +2,9 @@
 
 namespace MohamadRZ\NovaPerms\context;
 
-class Context
+interface Context
 {
-
-    public static function builder(): ContextBuilder
-    {
-        return new ContextBuilder();
-    }
+    public function getKey(): string;
+    public function getValue(): string;
+    public function __toString(): string;
 }
