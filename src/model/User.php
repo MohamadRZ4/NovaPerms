@@ -58,6 +58,6 @@ class User extends PermissionHolder
 
     public function importNodes(array $data): void
     {
-
+        
     }
 }

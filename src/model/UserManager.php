@@ -22,7 +22,9 @@ class UserManager
         if ($this->cache->exists($primaryKey)) {
             return $this->cache->get($primaryKey);
         } else {
-            return new User($primaryKey);
+            $user = new User($primaryKey);
+            $this->cache->set($primaryKey, $user);
+            return $user;
         }
     }
 }
