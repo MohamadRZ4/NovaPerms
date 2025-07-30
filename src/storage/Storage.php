@@ -2,13 +2,14 @@
 
 namespace MohamadRZ\NovaPerms\storage;
 
-use MohamadRZ\NovaPerms\model\Group;
-use MohamadRZ\NovaPerms\model\Track;
-use MohamadRZ\NovaPerms\model\User;
+use MohamadRZ\NovaPerms\configs\PrimaryKeys;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
 use MohamadRZ\NovaPerms\utils\AsyncInterface;
-use MohamadRZ\NovaPerms\configs\PrimaryKeys;
+use MohamadRZ\NovaPerms\model\User;
+use MohamadRZ\NovaPerms\model\Group;
+use MohamadRZ\NovaPerms\model\Track;
+use InvalidArgumentException;
 
 class Storage extends AsyncInterface
 {
@@ -23,6 +24,22 @@ class Storage extends AsyncInterface
         $storageType = $plugin->getConfigManager()->getStorageMethod();
         $this->implementation = StorageFactory::createStorage($plugin, $storageType);
         $this->implementation->init();
+
+        try {
+            $this->loadAllGroups(
+                function ($result) {
+                    // کار با نتیجه
+                    return true;
+                },
+                function ($error) {
+                    throw new InvalidArgumentException("Error for load all groups: " . $error);
+                }
+            );
+
+            $this->plugin->getLogger()->info("All groups loaded successfully");
+        } catch (\Throwable $e) {
+            throw new InvalidArgumentException("Error loading all groups: " . $e->getMessage());
+        }
     }
 
     public function getPlugin(): NovaPermsPlugin
@@ -47,7 +64,7 @@ class Storage extends AsyncInterface
 
     public function getImplementationName(callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->getImplementationName(),
             $onSuccess,
             $onError
@@ -56,7 +73,7 @@ class Storage extends AsyncInterface
 
     public function loadUser(string $primaryKey, string $username, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->loadUser($primaryKey, $username),
             $onSuccess,
             $onError
@@ -65,7 +82,7 @@ class Storage extends AsyncInterface
 
     public function loadUsers(array $primaryKeys, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->loadUsers($primaryKeys),
             $onSuccess,
             $onError
@@ -74,7 +91,7 @@ class Storage extends AsyncInterface
 
     public function saveUser(User $user, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->saveUser($user),
             $onSuccess,
             $onError
@@ -83,7 +100,7 @@ class Storage extends AsyncInterface
 
     public function createAndLoadGroup(string $name, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->createAndLoadGroup($name),
             $onSuccess,
             $onError
@@ -92,7 +109,7 @@ class Storage extends AsyncInterface
 
     public function loadGroup(string $name, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->loadGroup($name),
             $onSuccess,
             $onError
@@ -101,7 +118,7 @@ class Storage extends AsyncInterface
 
     public function loadAllGroups(callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->loadAllGroups(),
             $onSuccess,
             $onError
@@ -110,7 +127,7 @@ class Storage extends AsyncInterface
 
     public function saveGroup(Group $group, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->saveGroup($group),
             $onSuccess,
             $onError
@@ -119,7 +136,7 @@ class Storage extends AsyncInterface
 
     public function deleteGroup(Group $group, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->deleteGroup($group),
             $onSuccess,
             $onError
@@ -128,7 +145,7 @@ class Storage extends AsyncInterface
 
     public function createAndLoadTrack(string $name, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->createAndLoadTrack($name),
             $onSuccess,
             $onError
@@ -137,7 +154,7 @@ class Storage extends AsyncInterface
 
     public function loadTrack(string $name, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->loadTrack($name),
             $onSuccess,
             $onError
@@ -146,7 +163,7 @@ class Storage extends AsyncInterface
 
     public function loadAllTracks(callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->loadAllTracks(),
             $onSuccess,
             $onError
@@ -155,7 +172,7 @@ class Storage extends AsyncInterface
 
     public function saveTrack(Track $track, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->saveTrack($track),
             $onSuccess,
             $onError
@@ -164,7 +181,7 @@ class Storage extends AsyncInterface
 
     public function deleteTrack(Track $track, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->deleteTrack($track),
             $onSuccess,
             $onError
@@ -173,7 +190,7 @@ class Storage extends AsyncInterface
 
     public function savePlayerData(string $primaryKey, string $username, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->savePlayerData($primaryKey, $username),
             $onSuccess,
             $onError
@@ -182,7 +199,7 @@ class Storage extends AsyncInterface
 
     public function deletePlayerData(string $primaryKey, callable $onSuccess, ?callable $onError = null): void
     {
-        $this->async(
+        $this->sync(
             fn() => $this->implementation->deletePlayerData($primaryKey),
             $onSuccess,
             $onError

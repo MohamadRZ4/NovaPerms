@@ -4,6 +4,7 @@ namespace MohamadRZ\NovaPerms\model;
 
 use MohamadRZ\NovaPerms\model\cache\CachedLoader;
 use MohamadRZ\NovaPerms\model\cache\CacheInstance;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
 
 class GroupManager
 {
@@ -25,10 +26,6 @@ class GroupManager
         return $this->cache->getAll();
     }
 
-    /**
-     * @param string $primaryKey
-     * @return Group
-     */
     public function getOrMake($primaryKey): Group
     {
         $key = (string)$primaryKey;
@@ -41,40 +38,24 @@ class GroupManager
         }
     }
 
-    /**
-     * @param string $primaryKey
-     * @return Group|null
-     */
     public function getIfLoaded($primaryKey): ?Group
     {
         $key = (string)$primaryKey;
         return $this->cache->exists($key) ? $this->cache->get($key) : null;
     }
 
-    /**
-     * @param string $primaryKey
-     * @return bool
-     */
     public function isLoaded($primaryKey): bool
     {
         $key = (string)$primaryKey;
         return $this->cache->exists($key);
     }
 
-    /**
-     * @param string $primaryKey
-     * @return void
-     */
     public function unload($primaryKey): void
     {
         $key = (string)$primaryKey;
         $this->cache->delete($key);
     }
 
-    /**
-     * @param array $primaryKeys
-     * @return void
-     */
     public function retainAll(array $primaryKeys): void
     {
         $allKeys = array_keys($this->cache->getAll());

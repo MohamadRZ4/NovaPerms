@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\NovaPerms\model\cache;
+namespace MohamadRZ\NovaPerms\model\cache\providers;
 
 use MohamadRZ\NovaPerms\model\cache\providers\AbstractCacheProvider;
 
@@ -87,5 +87,14 @@ class MemoryCacheProvider extends AbstractCacheProvider
             'memory_usage' => memory_get_usage(),
             'expiry_enabled' => $this->isExpiryEnabled()
         ];
+    }
+
+    public function getAll(): array
+    {
+        if ($this->isExpiryEnabled()) {
+            $this->cleanExpired();
+        }
+
+        return $this->storage;
     }
 }

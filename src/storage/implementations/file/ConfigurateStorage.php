@@ -2,14 +2,16 @@
 
 namespace MohamadRZ\NovaPerms\storage\implementations\file;
 
+use Exception;
+use InvalidArgumentException;
 use MohamadRZ\NovaPerms\configs\PrimaryKeys;
+use MohamadRZ\NovaPerms\context\ImmutableContextSet;
+use MohamadRZ\NovaPerms\model\{Group, Track, User};
 use MohamadRZ\NovaPerms\node\serializers\NodeDeserializer;
 use MohamadRZ\NovaPerms\node\serializers\NodeSerializer;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use MohamadRZ\NovaPerms\storage\implementations\file\loaders\ConfigurateLoader;
 use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
-use MohamadRZ\NovaPerms\model\{User, Group, Track};
-use pocketmine\utils\Config;
 
 class ConfigurateStorage implements StorageImplementation
 {
@@ -19,14 +21,13 @@ class ConfigurateStorage implements StorageImplementation
     protected string $dataDirectory;
     protected string $dataDirectoryName;
 
-    protected array $groupCache = [];
-
     public function __construct(
         NovaPermsPlugin   $plugin,
         string            $implementationName,
         ConfigurateLoader $loader,
         string            $dataDirectoryName
-    ) {
+    )
+    {
         $this->plugin = $plugin;
         $this->implementationName = $implementationName;
         $this->loader = $loader;
@@ -43,175 +44,37 @@ class ConfigurateStorage implements StorageImplementation
         return $this->implementationName;
     }
 
-    public function readFile(StorageLocation $location, string $name): ?array
+    public function loadUsers(array $primaryKeys): array
     {
-        if (empty($name)) {
-            $this->plugin->getLogger()->error("File name cannot be empty");
-            return null;
+        if (empty($primaryKeys)) {
+            return [];
         }
 
-        if (empty($this->dataDirectory)) {
-            $this->plugin->getLogger()->error("Data directory not initialized");
-            return null;
-        }
+        $configManager = NovaPermsPlugin::getConfigManager();
 
-        $directory = $this->dataDirectory . DIRECTORY_SEPARATOR . $location->value;
+        $primaryKeyType = $configManager->getPrimaryKey();
+        $users = [];
 
-        if (!is_dir($directory)) {
-            if (!mkdir($directory, 0755, true)) {
-                $this->plugin->getLogger()->error("Failed to create directory: {$directory}");
-                return null;
-            }
-        }
-
-        if ($this->loader === null) {
-            $this->plugin->getLogger()->error("Loader not initialized");
-            return null;
-        }
-
-        $extension = $this->loader->getExtension();
-        if (empty($extension)) {
-            $this->plugin->getLogger()->error("Loader extension is empty");
-            return null;
-        }
-
-        $filePath = $directory . DIRECTORY_SEPARATOR . $name . $extension;
-
-        if (!file_exists($filePath)) {
-            return null;
-        }
-
-        if (!is_readable($filePath)) {
-            $this->plugin->getLogger()->error("File is not readable: {$filePath}");
-            return null;
-        }
-
-        try {
-            $config = $this->loader->load($filePath);
-            if ($config === null) {
-                $this->plugin->getLogger()->error("Failed to load config from: {$filePath}");
-                return null;
-            }
-            return $config->getAll();
-        } catch (\Exception $e) {
-            $this->plugin->getLogger()->error("Error reading file {$filePath}: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function saveFile(StorageLocation $location, string $name, ?array $data): void
-    {
-        if (empty($name)) {
-            $this->plugin->getLogger()->error("File name cannot be empty");
-            return;
-        }
-
-        if (empty($this->dataDirectory)) {
-            $this->plugin->getLogger()->error("Data directory not initialized");
-            return;
-        }
-
-        $directory = $this->dataDirectory . DIRECTORY_SEPARATOR . $location->value;
-
-        if (!is_dir($directory)) {
-            if (!mkdir($directory, 0755, true)) {
-                $this->plugin->getLogger()->error("Failed to create directory: {$directory}");
-                return;
-            }
-        }
-
-        if ($this->loader === null) {
-            $this->plugin->getLogger()->error("Loader not initialized");
-            return;
-        }
-
-        $extension = $this->loader->getExtension();
-        if (empty($extension)) {
-            $this->plugin->getLogger()->error("Loader extension is empty");
-            return;
-        }
-
-        $filePath = $directory . DIRECTORY_SEPARATOR . $name . $extension;
-
-        if ($data === null) {
-            if (file_exists($filePath)) {
-                if (!unlink($filePath)) {
-                    $this->plugin->getLogger()->error("Failed to delete file: {$filePath}");
-                }
-            }
-            return;
-        }
-
-        if (!is_writable($directory)) {
-            $this->plugin->getLogger()->error("Directory is not writable: {$directory}");
-            return;
-        }
-
-        try {
-            $config = $this->loader->load($filePath);
-            if ($config === null) {
-                $this->plugin->getLogger()->error("Failed to load config for saving: {$filePath}");
-                return;
-            }
-            $config->setAll($data);
-            $config->save();
-        } catch (\Exception $e) {
-            $this->plugin->getLogger()->error("Error saving file {$filePath}: " . $e->getMessage());
-        }
-    }
-
-    public function loadAllGroups(): void
-    {
-        if (empty($this->dataDirectory)) {
-            $this->plugin->getLogger()->error("Data directory not initialized");
-            return;
-        }
-
-        $groupsDir = $this->dataDirectory . DIRECTORY_SEPARATOR . StorageLocation::GROUPS->value;
-        if (!is_dir($groupsDir)) {
-            return;
-        }
-
-        if (!is_readable($groupsDir)) {
-            $this->plugin->getLogger()->error("Groups directory is not readable: {$groupsDir}");
-            return;
-        }
-
-        $files = scandir($groupsDir);
-        if ($files === false) {
-            $this->plugin->getLogger()->error("Failed to scan groups directory: {$groupsDir}");
-            return;
-        }
-
-        if ($this->loader === null) {
-            $this->plugin->getLogger()->error("Loader not initialized");
-            return;
-        }
-
-        $extension = $this->loader->getExtension();
-        if (empty($extension)) {
-            $this->plugin->getLogger()->error("Loader extension is empty");
-            return;
-        }
-
-        foreach ($files as $file) {
-            if ($file === '.' || $file === '..' || empty($file)) {
+        foreach ($primaryKeys as $primaryKey => $username) {
+            if (empty($primaryKey)) {
+                $this->plugin->getLogger()->warning("Empty primary key found in loadUsers");
                 continue;
             }
 
-            if (str_ends_with($file, $extension)) {
-                $name = substr($file, 0, -strlen($extension));
-                if (!empty($name)) {
-                    $this->loadGroup($name);
-                }
+            try {
+                $users[] = $this->loadUser($primaryKey, $username);
+            } catch (Exception $e) {
+                $this->plugin->getLogger()->error("Error loading user {$primaryKey}: " . $e->getMessage());
             }
         }
+
+        return $users;
     }
 
     public function loadUser(string $primaryKey, ?string $username = null): User
     {
         if (empty($primaryKey)) {
-            throw new \InvalidArgumentException("Primary key cannot be empty");
+            throw new InvalidArgumentException("Primary key cannot be empty");
         }
 
         $userManager = NovaPermsPlugin::getUserManager();
@@ -223,8 +86,8 @@ class ConfigurateStorage implements StorageImplementation
 
         if ($primaryKeyType === PrimaryKeys::USERNAME) {
             if ($data === null) {
-                if ($username === null || empty($username)) {
-                    throw new \InvalidArgumentException("Username is required when primary key type is USERNAME and no data exists");
+                if (empty($username)) {
+                    throw new InvalidArgumentException("Username is required when primary key type is USERNAME and no data exists");
                 }
                 $user->setUsername($username);
                 $this->saveUser($user);
@@ -257,7 +120,7 @@ class ConfigurateStorage implements StorageImplementation
             try {
                 $nodes = $this->readNodes($data["permissions"]);
                 $user->importNodes($nodes);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->plugin->getLogger()->error("Error importing nodes for user {$primaryKey}: " . $e->getMessage());
             }
         }
@@ -265,46 +128,51 @@ class ConfigurateStorage implements StorageImplementation
         return $user;
     }
 
-    public function loadUsers(array $primaryKeys): array
+    public function readFile(StorageLocation $location, string $name): ?array
     {
-        if (empty($primaryKeys)) {
-            return [];
+        if (empty($name)) {
+            $this->plugin->getLogger()->error("File name cannot be empty");
+            return null;
         }
 
-        $configManager = NovaPermsPlugin::getConfigManager();
+        if (empty($this->dataDirectory)) {
+            $this->plugin->getLogger()->error("Data directory not initialized");
+            return null;
+        }
 
-        $primaryKeyType = $configManager->getPrimaryKey();
-        $users = [];
+        $directory = $this->dataDirectory . DIRECTORY_SEPARATOR . $location->value;
 
-        if ($primaryKeyType === PrimaryKeys::USERNAME) {
-            foreach ($primaryKeys as $primaryKey => $username) {
-                if (empty($primaryKey)) {
-                    $this->plugin->getLogger()->warning("Empty primary key found in loadUsers");
-                    continue;
-                }
-
-                try {
-                    $users[] = $this->loadUser($primaryKey, $username);
-                } catch (\Exception $e) {
-                    $this->plugin->getLogger()->error("Error loading user {$primaryKey}: " . $e->getMessage());
-                }
-            }
-        } else {
-            foreach ($primaryKeys as $primaryKey => $username) {
-                if (empty($primaryKey)) {
-                    $this->plugin->getLogger()->warning("Empty primary key found in loadUsers");
-                    continue;
-                }
-
-                try {
-                    $users[] = $this->loadUser($primaryKey, $username);
-                } catch (\Exception $e) {
-                    $this->plugin->getLogger()->error("Error loading user {$primaryKey}: " . $e->getMessage());
-                }
+        if (!is_dir($directory)) {
+            if (!mkdir($directory, 0755, true)) {
+                $this->plugin->getLogger()->error("Failed to create directory: {$directory}");
+                return null;
             }
         }
 
-        return $users;
+        $extension = $this->loader->getExtension();
+        if (empty($extension)) {
+            $this->plugin->getLogger()->error("Loader extension is empty");
+            return null;
+        }
+
+        $filePath = $directory . DIRECTORY_SEPARATOR . $name . $extension;
+
+        if (!file_exists($filePath)) {
+            return null;
+        }
+
+        if (!is_readable($filePath)) {
+            $this->plugin->getLogger()->error("File is not readable: {$filePath}");
+            return null;
+        }
+
+        try {
+            $config = $this->loader->load($filePath);
+            return $config->getAll();
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error reading file {$filePath}: " . $e->getMessage());
+            return null;
+        }
     }
 
     public function saveUser(User $user): void
@@ -328,8 +196,88 @@ class ConfigurateStorage implements StorageImplementation
             }
 
             $this->saveFile(StorageLocation::USERS, $primaryKey, $data);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->plugin->getLogger()->error("Error saving user {$primaryKey}: " . $e->getMessage());
+        }
+    }
+
+    protected function writeNodes(?array $data): array
+    {
+        if (!is_array($data)) {
+            return NodeSerializer::serialize([ImmutableContextSet::empty()]);
+        }
+
+        try {
+            return NodeSerializer::serialize($data);
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error serializing nodes: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function saveFile(StorageLocation $location, string $name, ?array $data): void
+    {
+        if (empty($name)) {
+            $this->plugin->getLogger()->error("File name cannot be empty");
+            return;
+        }
+
+        if (empty($this->dataDirectory)) {
+            $this->plugin->getLogger()->error("Data directory not initialized");
+            return;
+        }
+
+        $directory = $this->dataDirectory . DIRECTORY_SEPARATOR . $location->value;
+
+        if (!is_dir($directory)) {
+            if (!mkdir($directory, 0755, true)) {
+                $this->plugin->getLogger()->error("Failed to create directory: {$directory}");
+                return;
+            }
+        }
+
+        $extension = $this->loader->getExtension();
+        if (empty($extension)) {
+            $this->plugin->getLogger()->error("Loader extension is empty");
+            return;
+        }
+
+        $filePath = $directory . DIRECTORY_SEPARATOR . $name . $extension;
+
+        if ($data === null) {
+            if (file_exists($filePath)) {
+                if (!unlink($filePath)) {
+                    $this->plugin->getLogger()->error("Failed to delete file: {$filePath}");
+                }
+            }
+            return;
+        }
+
+        if (!is_writable($directory)) {
+            $this->plugin->getLogger()->error("Directory is not writable: {$directory}");
+            return;
+        }
+
+        try {
+            $config = $this->loader->load($filePath);
+            $config->setAll($data);
+            $config->save();
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error saving file {$filePath}: " . $e->getMessage());
+        }
+    }
+
+    protected function readNodes(?array $rawData): array
+    {
+        if (!is_array($rawData)) {
+            return [];
+        }
+
+        try {
+            return NodeDeserializer::deserialize($rawData);
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error deserializing nodes: " . $e->getMessage());
+            return [];
         }
     }
 
@@ -344,7 +292,7 @@ class ConfigurateStorage implements StorageImplementation
             $user = $this->loadUser($primaryKey, $username);
             $this->saveUser($user);
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->plugin->getLogger()->error("Error saving player data for {$primaryKey}: " . $e->getMessage());
             return false;
         }
@@ -359,35 +307,6 @@ class ConfigurateStorage implements StorageImplementation
 
         $this->saveFile(StorageLocation::USERS, $primaryKey, null);
     }
-
-    protected function readNodes(?array $rawData): array
-    {
-        if (!is_array($rawData)) {
-            return [];
-        }
-
-        try {
-            return NodeDeserializer::deserialize($rawData);
-        } catch (\Exception $e) {
-            $this->plugin->getLogger()->error("Error deserializing nodes: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    protected function writeNodes(?array $data): array
-    {
-        if (!is_array($data)) {
-            return [];
-        }
-
-        try {
-            return NodeSerializer::serialize($data);
-        } catch (\Exception $e) {
-            $this->plugin->getLogger()->error("Error serializing nodes: " . $e->getMessage());
-            return [];
-        }
-    }
-
 
     public function init(): void
     {
@@ -406,69 +325,167 @@ class ConfigurateStorage implements StorageImplementation
 
     public function shutdown(): void
     {
-        $this->groupCache = [];
+        // im so sad..
     }
 
 
-
-
-
-
-
-
-    public function loadAllTracks(): void
+    public function loadAllGroups(): void
     {
-        // Track functionality not implemented
-    }
-    public function createAndLoadGroup(string $name): Group
-    {
- /*       $group = new Group($name);
-        $this->saveGroup($group);
-        $this->groupCache[$name] = $group;
-        return $group;*/
+        if (empty($this->dataDirectory)) {
+            $this->plugin->getLogger()->error("Data directory not initialized");
+            return;
+        }
+
+        $groupsDir = $this->dataDirectory . DIRECTORY_SEPARATOR . StorageLocation::GROUPS->value;
+        if (!is_dir($groupsDir)) {
+            return;
+        }
+
+        if (!is_readable($groupsDir)) {
+            $this->plugin->getLogger()->error("Groups directory is not readable: {$groupsDir}");
+            return;
+        }
+
+        $files = scandir($groupsDir);
+        if ($files === false) {
+            $this->plugin->getLogger()->error("Failed to scan groups directory: {$groupsDir}");
+            return;
+        }
+
+        $extension = $this->loader->getExtension();
+        if (empty($extension)) {
+            $this->plugin->getLogger()->error("Loader extension is empty");
+            return;
+        }
+
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..' || empty($file)) {
+                continue;
+            }
+
+            if (str_ends_with($file, $extension)) {
+                $name = substr($file, 0, -strlen($extension));
+                if (!empty($name)) {
+                    try {
+                        $this->loadGroup($name);
+                    } catch (Exception $e) {
+                        $this->plugin->getLogger()->error("Error loading group {$name}: " . $e->getMessage());
+                    }
+                }
+            }
+        }
     }
 
     public function loadGroup(string $name): ?Group
     {
-/*        if (isset($this->groupCache[$name])) {
-            return $this->groupCache[$name];
-        }
-
-        $data = $this->readFile(StorageLocation::GROUPS, $name);
-        if ($data === null) {
+        if (empty($name)) {
+            $this->plugin->getLogger()->error("Group name cannot be empty");
             return null;
         }
 
-        $group = new Group($name);
-
-        if (isset($data['permissions']) && is_array($data['permissions'])) {
-            $permissions = $this->readNodes($data['permissions']);
-            foreach ($permissions as $permission => $value) {
-                $group->setPermission($permission, $value);
+        try {
+            $data = $this->readFile(StorageLocation::GROUPS, $name);
+            if ($data === null) {
+                return null;
             }
+
+            $group = new Group($name);
+
+            if (isset($data['permissions']) && is_array($data['permissions'])) {
+                try {
+                    $permissions = $this->readNodes($data['permissions']);
+                    $group->importNodes($this->writeNodes($permissions));
+                } catch (Exception $e) {
+                    $this->plugin->getLogger()->error("Error reading permissions for group {$name}: " . $e->getMessage());
+                }
+            }
+
+            return $group;
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error loading group {$name}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function createAndLoadGroup(string $name): Group
+    {
+        if (empty($name)) {
+            throw new InvalidArgumentException("Group name cannot be empty");
         }
 
-        $this->groupCache[$name] = $group;
-        return $group;*/
+        $existingData = $this->readFile(StorageLocation::GROUPS, $name);
+        if ($existingData !== null) {
+            $this->plugin->getLogger()->warning("Group {$name} already exists, loading existing group");
+            return $this->loadGroup($name);
+        }
+
+        try {
+            $group = new Group($name);
+            $this->saveGroup($group);
+            return $group;
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error creating group {$name}: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     public function saveGroup(Group $group): void
     {
-/*        $data = [
-            'name' => $group->getName(),
-            'permissions' => []
-        ];
+        $groupName = $group->getName();
+        if (empty($groupName)) {
+            $this->plugin->getLogger()->error("Group name is empty");
+            return;
+        }
 
-        $this->writeNodes($data);
-        $this->saveFile(StorageLocation::GROUPS, $group->getName(), $data);
-        $this->groupCache[$group->getName()] = $group;*/
+        try {
+            $data = [
+                'name' => $groupName,
+                'permissions' => []
+            ];
+
+            $nodes = $group->getNodes();
+            if (is_array($nodes)) {
+                $data['permissions'] = $this->writeNodes($nodes);
+            }
+
+            $this->saveFile(StorageLocation::GROUPS, $groupName, $data);
+
+            $this->plugin->getLogger()->info("Group {$groupName} saved successfully");
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error saving group {$groupName}: " . $e->getMessage());
+        }
     }
 
     public function deleteGroup(Group $group): void
     {
-/*        $this->saveFile(StorageLocation::GROUPS, $group->getName(), null);
-        unset($this->groupCache[$group->getName()]);*/
+
+        $groupName = $group->getName();
+        if (empty($groupName)) {
+            $this->plugin->getLogger()->error("Group name is empty");
+            return;
+        }
+
+        try {
+            $existingData = $this->readFile(StorageLocation::GROUPS, $groupName);
+            if ($existingData === null) {
+                $this->plugin->getLogger()->warning("Group {$groupName} does not exist in storage");
+                return;
+            }
+
+            $this->saveFile(StorageLocation::GROUPS, $groupName, null);
+
+            $this->plugin->getLogger()->info("Group {$groupName} deleted successfully");
+        } catch (Exception $e) {
+            $this->plugin->getLogger()->error("Error deleting group {$groupName}: " . $e->getMessage());
+        }
     }
+
+
+    public function loadAllTracks(): void
+    {
+        // todo: load all track
+    }
+
 
     public function createAndLoadTrack(string $name): Track
     {

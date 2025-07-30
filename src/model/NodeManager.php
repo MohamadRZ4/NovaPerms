@@ -3,6 +3,7 @@
 namespace MohamadRZ\NovaPerms\model;
 
 
+use MohamadRZ\NovaPerms\context\ImmutableContextSet;
 use MohamadRZ\NovaPerms\model\cache\CachedLoader;
 use MohamadRZ\NovaPerms\model\cache\CacheInstance;
 use MohamadRZ\NovaPerms\node\AbstractNode;
@@ -49,7 +50,7 @@ class NodeManager
     public function getNodes(string $holderType, string $holderId): array
     {
         $key = $this->getKey($holderType, $holderId);
-        return $this->cache->get($key, []);
+        return $this->cache->get($key, [ImmutableContextSet::empty()]);
     }
 
     public function setNodes(string $holderType, string $holderId, array $nodes): void

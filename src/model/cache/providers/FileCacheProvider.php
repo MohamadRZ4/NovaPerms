@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\NovaPerms\model\cache\providers\providers;
+namespace MohamadRZ\NovaPerms\model\cache\providers;
 
 use MohamadRZ\NovaPerms\model\cache\providers\AbstractCacheProvider;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
@@ -81,4 +81,40 @@ class FileCacheProvider extends AbstractCacheProvider
         $hash = md5($key);
         return $this->cacheDir . '/' . $hash . '.cache';
     }
+
+    /**
+     * @return array
+     */
+    #[\Override] public function getAll(): array
+    {
+        $result = [];
+        $files = glob($this->cacheDir . '/*.cache');
+
+        if ($files === false) {
+            return [];
+        }
+
+        foreach ($files as $file) {
+            $content = file_get_contents($file);
+            if ($content === false) {
+                continue;
+            }
+
+            $data = json_decode($content, true);
+            if ($data === null) {
+                continue;
+            }
+
+            if ($this->isExpiryEnabled() && $data['expire'] !== null && $data['expire'] < time()) {
+                unlink($file);
+                continue;
+            }
+
+            $filename = basename($file, '.cache');
+            $result[$filename] = $data['value'];
+        }
+
+        return $result;
+    }
+
 }

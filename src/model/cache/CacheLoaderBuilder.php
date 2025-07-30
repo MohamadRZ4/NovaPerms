@@ -3,7 +3,8 @@
 namespace MohamadRZ\NovaPerms\model\cache;
 
 use MohamadRZ\NovaPerms\model\cache\config\CacheConfig;
-use MohamadRZ\NovaPerms\model\cache\providers\providers\FileCacheProvider;
+use MohamadRZ\NovaPerms\model\cache\providers\FileCacheProvider;
+use MohamadRZ\NovaPerms\model\cache\providers\MemoryCacheProvider;
 
 class CacheLoaderBuilder
 {
@@ -18,7 +19,7 @@ class CacheLoaderBuilder
         return $this;
     }
 
-    public function file(string $cacheDir = null): self
+    public function file(?string $cacheDir = null): self
     {
         $this->provider = 'file';
         $this->config = CacheConfig::create()
