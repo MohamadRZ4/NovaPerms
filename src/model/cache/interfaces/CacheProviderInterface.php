@@ -14,4 +14,5 @@ interface CacheProviderInterface
     public function exists(string $key): bool;
     public function increment(string $key, int $value = 1): int|false;
     public function decrement(string $key, int $value = 1): int|false;
+    public function getAll(): array;
 }

@@ -8,49 +8,49 @@ use MohamadRZ\NovaPerms\NovaPermsPlugin;
 
 abstract class PermissionHolder
 {
-    protected PermissionManager $permissionManager;
+    protected NodeManager $nodeManager;
     protected string $holderId;
     protected string $holderType;
 
     public function __construct()
     {
-        $this->permissionManager = NovaPermsPlugin::getPermissionManager();
+        $this->nodeManager = NovaPermsPlugin::getPermissionManager();
     }
 
-    public function addPermission(AbstractNode $permission): void
+    public function addNode(AbstractNode $permission): void
     {
-        $this->permissionManager->addPermission($this->holderType, $this->holderId, $permission);
+        $this->nodeManager->addNode($this->holderType, $this->holderId, $permission);
     }
 
-    public function removePermission(AbstractNode $permission): void
+    public function removeNode(AbstractNode $permission): void
     {
-        $this->permissionManager->removePermission($this->holderType, $this->holderId, $permission);
+        $this->nodeManager->removeNode($this->holderType, $this->holderId, $permission);
     }
 
-    public function getPermissions(): array
+    public function getNodes(): array
     {
-        return $this->permissionManager->getPermissions($this->holderType, $this->holderId);
+        return $this->nodeManager->getNodes($this->holderType, $this->holderId);
     }
 
-    public function setPermissions(array $permissions): void
+    public function setNodes(array $permissions): void
     {
-        $this->permissionManager->setPermissions($this->holderType, $this->holderId, $permissions);
+        $this->nodeManager->setNodes($this->holderType, $this->holderId, $permissions);
     }
 
-    public function clearPermissions(): void
+    public function clearNodes(): void
     {
-        $this->permissionManager->clearPermissions($this->holderType, $this->holderId);
+        $this->nodeManager->clearNodes($this->holderType, $this->holderId);
     }
 
-    public function getPermissionCount(): int
+    public function getNodeCount(): int
     {
-        return $this->permissionManager->getPermissionCount($this->holderType, $this->holderId);
+        return $this->nodeManager->getNodeCount($this->holderType, $this->holderId);
     }
 
-    public function copyPermissionsFrom(PermissionHolder $other): void
+    public function copyNodesFrom(PermissionHolder $other): void
     {
-        $permissions = $other->getPermissions();
-        $this->setPermissions($permissions);
+        $permissions = $other->getNodes();
+        $this->setNodes($permissions);
     }
 
     abstract protected function setHolderId(string $id): void;

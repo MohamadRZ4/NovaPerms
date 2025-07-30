@@ -7,7 +7,7 @@ use MohamadRZ\NovaPerms\model\cache\CachedLoader;
 use MohamadRZ\NovaPerms\model\cache\CacheInstance;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 
-class PermissionManager
+class NodeManager
 {
     private CacheInstance $cache;
     private const CACHE_PREFIX = 'permissions:';
@@ -16,57 +16,57 @@ class PermissionManager
 
     public function __construct()
     {
-        $this->cache = CachedLoader::create('permissions')
+        $this->cache = CachedLoader::create('nodes')
             ->memory()
             ->permanent()
             ->build();
     }
 
-    public function addPermission(string $holderType, string $holderId, AbstractNode $permission): void
+    public function addNode(string $holderType, string $holderId, AbstractNode $node): void
     {
         $key = $this->getKey($holderType, $holderId);
-        $permissions = $this->getPermissions($holderType, $holderId);
+        $nodes = $this->getNodes($holderType, $holderId);
 
-        if (!in_array($permission, $permissions)) {
-            $permissions[] = $permission;
-            $this->cache->set($key, $permissions);
+        if (!in_array($node, $nodes)) {
+            $nodes[] = $node;
+            $this->cache->set($key, $nodes);
         }
     }
 
-    public function removePermission(string $holderType, string $holderId, AbstractNode $permission): void
+    public function removeNode(string $holderType, string $holderId, AbstractNode $node): void
     {
         $key = $this->getKey($holderType, $holderId);
-        $permissions = $this->getPermissions($holderType, $holderId);
+        $nodes = $this->getNodes($holderType, $holderId);
 
-        $index = array_search($permission, $permissions);
+        $index = array_search($node, $nodes);
         if ($index !== false) {
-            unset($permissions[$index]);
-            $permissions = array_values($permissions);
-            $this->cache->set($key, $permissions);
+            unset($nodes[$index]);
+            $nodes = array_values($nodes);
+            $this->cache->set($key, $nodes);
         }
     }
 
-    public function getPermissions(string $holderType, string $holderId): array
+    public function getNodes(string $holderType, string $holderId): array
     {
         $key = $this->getKey($holderType, $holderId);
         return $this->cache->get($key, []);
     }
 
-    public function setPermissions(string $holderType, string $holderId, array $permissions): void
+    public function setNodes(string $holderType, string $holderId, array $nodes): void
     {
         $key = $this->getKey($holderType, $holderId);
-        $this->cache->set($key, array_unique($permissions));
+        $this->cache->set($key, array_unique($nodes));
     }
 
-    public function clearPermissions(string $holderType, string $holderId): void
+    public function clearNodes(string $holderType, string $holderId): void
     {
         $key = $this->getKey($holderType, $holderId);
         $this->cache->delete($key);
     }
 
-    public function getPermissionCount(string $holderType, string $holderId): int
+    public function getNodeCount(string $holderType, string $holderId): int
     {
-        return count($this->getPermissions($holderType, $holderId));
+        return count($this->getNodes($holderType, $holderId));
     }
 
     private function getKey(string $holderType, string $holderId): string

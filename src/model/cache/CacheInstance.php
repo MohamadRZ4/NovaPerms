@@ -70,4 +70,9 @@ class CacheInstance
     {
         return $this->provider->decrement($key, $value);
     }
+
+    public function getAll(): array
+    {
+        return $this->provider->getAll();
+    }
 }

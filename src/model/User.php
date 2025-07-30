@@ -2,7 +2,6 @@
 
 namespace MohamadRZ\NovaPerms\model;
 
-use Dom\Node;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 
 class User extends PermissionHolder
@@ -14,7 +13,8 @@ class User extends PermissionHolder
     public function __construct(string $primaryKey)
     {
         parent::__construct();
-        $this->holderId = $primaryKey;
+        $this->primaryKey = $primaryKey;
+        $this->setHolderId($primaryKey);
         $this->setHolderType('user');
     }
 
