@@ -28,7 +28,6 @@ class Storage extends AsyncInterface
         try {
             $this->loadAllGroups(
                 function ($result) {
-                    // کار با نتیجه
                     return true;
                 },
                 function ($error) {
@@ -36,7 +35,7 @@ class Storage extends AsyncInterface
                 }
             );
 
-            $this->plugin->getLogger()->info("All groups loaded successfully");
+            $this->plugin->getLogger()->info("Loading storage provider... "."[".strtoupper(NovaPermsPlugin::getConfigManager()->getStorageMethod())."]");
         } catch (\Throwable $e) {
             throw new InvalidArgumentException("Error loading all groups: " . $e->getMessage());
         }

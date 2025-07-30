@@ -2,6 +2,7 @@
 
 namespace MohamadRZ\NovaPerms\configs;
 
+use pocketmine\Server;
 use pocketmine\utils\Config;
 
 class ConfigManager
@@ -11,6 +12,7 @@ class ConfigManager
 
     public function __construct(string $dataPath)
     {
+        Server::getInstance()->getLogger()->info("§6Loading configuration...");
         $this->dataPath = $dataPath;
         $this->config = new Config($dataPath . "config.yml", Config::YAML, [
             "storage-method" => "yaml",
