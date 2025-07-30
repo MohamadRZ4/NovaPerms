@@ -73,6 +73,9 @@ class UserManager
 
     public function unload($primaryKey): void
     {
+        $user = $this->getOrMake($primaryKey);
+        NovaPermsPlugin::getStorage()->saveUser($user);
+        $user->clearNodes();
         $this->cache->delete($primaryKey);
     }
 

@@ -2,20 +2,14 @@
 
 namespace MohamadRZ\NovaPerms\node\serializers;
 
+use MohamadRZ\NovaPerms\context\ImmutableContextSet;
 use MohamadRZ\NovaPerms\context\serializers\ContextDeserializer;
-use MohamadRZ\NovaPerms\node\Types\DisplayName;
 use MohamadRZ\NovaPerms\node\Types\DisplayNameNode;
-use MohamadRZ\NovaPerms\node\Types\Inheritance;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
-use MohamadRZ\NovaPerms\node\Types\Meta;
 use MohamadRZ\NovaPerms\node\Types\MetaNode;
-use MohamadRZ\NovaPerms\node\Types\Permission;
 use MohamadRZ\NovaPerms\node\Types\PermissionNode;
-use MohamadRZ\NovaPerms\node\Types\Prefix;
 use MohamadRZ\NovaPerms\node\Types\PrefixNode;
-use MohamadRZ\NovaPerms\node\Types\Suffix;
 use MohamadRZ\NovaPerms\node\Types\SuffixNode;
-use MohamadRZ\NovaPerms\node\Types\Weight;
 use MohamadRZ\NovaPerms\node\Types\WeightNode;
 
 final class NodeDeserializer
@@ -23,6 +17,11 @@ final class NodeDeserializer
     public static function deserialize(array $rawData): array
     {
         $result = [];
+
+        if ($rawData === []) {
+            $result[] = ImmutableContextSet::empty();
+            return $result;
+        }
 
         foreach ($rawData as $permission) {
             $name = $permission["name"] ?? "";

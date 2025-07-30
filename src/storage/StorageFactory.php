@@ -3,48 +3,56 @@
 namespace MohamadRZ\NovaPerms\storage;
 
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
-use MohamadRZ\NovaPerms\configs\PrimaryKeys;
-use MohamadRZ\NovaPerms\storage\implementations\file\CombinedConfigurateStorage;
+use MohamadRZ\NovaPerms\storage\implementations\file\ConfigurateStorage;
+use MohamadRZ\NovaPerms\storage\implementations\file\loaders\ConfigurateLoader;
+use MohamadRZ\NovaPerms\storage\implementations\file\loaders\JsonLoader;
 use MohamadRZ\NovaPerms\storage\implementations\file\loaders\YamlLoader;
 use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
+use InvalidArgumentException;
 
-class StorageFactory
+final class StorageFactory
 {
-    private static array $implementations = [];
+    private function __construct() {}
 
-    public static function registerImplementation(string $name, string $className): void
+    public static function createStorage(NovaPermsPlugin $plugin, string $storageType): StorageImplementation
     {
-        self::$implementations[strtolower($name)] = $className;
+        return match (strtolower($storageType)) {
+            'yaml', 'yml' => self::createConfigurateStorage($plugin, 'YAML', new YamlLoader(), 'yaml-storage'),
+            'json' => self::createConfigurateStorage($plugin, 'JSON', new JsonLoader(), 'json-storage'),
+            'mysql', 'database', 'db' => self::createDatabaseStorage($plugin),
+            'sqlite' => self::createSQLiteStorage($plugin),
+            default => throw new InvalidArgumentException("Unknown storage type: $storageType")
+        };
     }
 
-    public static function createStorage(NovaPermsPlugin $plugin, string $type): StorageImplementation
-    {
-        $type = strtolower($type);
-
-        if (!isset(self::$implementations[$type])) {
-            throw new \InvalidArgumentException("Unknown storage type: $type");
-        }
-
-        $className = self::$implementations[$type];
-
-        if (!class_exists($className)) {
-            throw new \RuntimeException("Storage implementation class not found: $className");
-        }
-
-        if (!is_subclass_of($className, StorageImplementation::class)) {
-            throw new \RuntimeException("Storage implementation must implement StorageImplementation interface");
-        }
-
-        return new $className($plugin);
+    private static function createConfigurateStorage(
+        NovaPermsPlugin $plugin,
+        string $implementationName,
+        ConfigurateLoader $loader,
+        string $dataDirectoryName
+    ): ConfigurateStorage {
+        return new ConfigurateStorage($plugin, $implementationName, $loader, $dataDirectoryName);
     }
 
-    public static function getAvailableImplementations(): array
+    private static function createDatabaseStorage(NovaPermsPlugin $plugin): StorageImplementation
     {
-        return array_keys(self::$implementations);
+
+        throw new InvalidArgumentException("MySQL storage not implemented yet");
     }
 
-    public static function init(): void
+    private static function createSQLiteStorage(NovaPermsPlugin $plugin): StorageImplementation
     {
-        self::registerImplementation("yml", new CombinedConfigurateStorage(NovaPermsPlugin::getInstance(), "Yaml", new YamlLoader(), "datebase"));
+
+        throw new InvalidArgumentException("SQLite storage not implemented yet");
+    }
+
+    public static function getAvailableStorageTypes(): array
+    {
+        return ['yaml', 'yml', 'json', 'mysql', 'sqlite'];
+    }
+
+    public static function isStorageTypeSupported(string $storageType): bool
+    {
+        return in_array(strtolower($storageType), self::getAvailableStorageTypes(), true);
     }
 }

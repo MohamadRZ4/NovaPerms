@@ -61,10 +61,10 @@ class User extends PermissionHolder
 
     public function importNodes(array $nodes): void
     {
-        $this->clearPermissions();
+        $this->clearNodes();
         foreach ($nodes as $node) {
             if ($node instanceof AbstractNode) {
-                $this->addPermission($node);
+                $this->addNode($node);
             }
         }
     }

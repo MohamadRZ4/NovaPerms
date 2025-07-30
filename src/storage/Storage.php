@@ -10,7 +10,7 @@ use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
 use MohamadRZ\NovaPerms\utils\AsyncInterface;
 use MohamadRZ\NovaPerms\configs\PrimaryKeys;
 
-abstract class Storage extends AsyncInterface
+class Storage extends AsyncInterface
 {
     protected StorageImplementation $implementation;
     protected PrimaryKeys $primaryKey;

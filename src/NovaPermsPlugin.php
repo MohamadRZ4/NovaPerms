@@ -7,6 +7,9 @@ namespace MohamadRZ\NovaPerms;
 use MohamadRZ\NovaPerms\configs\ConfigManager;
 use MohamadRZ\NovaPerms\model\NodeManager;
 use MohamadRZ\NovaPerms\model\UserManager;
+use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
+use MohamadRZ\NovaPerms\storage\Storage;
+use MohamadRZ\NovaPerms\storage\StorageFactory;
 use MohamadRZ\NovaPerms\timings\Timings;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\SingletonTrait;
@@ -19,6 +22,7 @@ class NovaPermsPlugin extends PluginBase {
     private static Timings $timings;
     private static NodeManager $permissionManager;
     private static UserManager $userManager;
+    private static Storage $storage;
 
     protected function onLoad(): void
     {
@@ -38,8 +42,9 @@ class NovaPermsPlugin extends PluginBase {
 
         $this->getServer()->getLogger()->info($logo);
         self::$datePath = $this->getDataFolder();
-        self::$configManager = new ConfigManager(self::$datePath);
         self::$timings = new Timings(self::$datePath."/timings/", self::$configManager);
+        self::$configManager = new ConfigManager(self::$datePath);
+        self::$storage = new Storage($this);
         self::$permissionManager = new NodeManager();
         self::$userManager = new UserManager();
 
@@ -86,5 +91,13 @@ class NovaPermsPlugin extends PluginBase {
     public static function getUserManager(): UserManager
     {
         return self::$userManager;
+    }
+
+    /**
+     * @return StorageImplementation
+     */
+    public static function getStorage(): StorageImplementation
+    {
+        return self::$storage;
     }
 }
