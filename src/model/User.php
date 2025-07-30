@@ -2,6 +2,9 @@
 
 namespace MohamadRZ\NovaPerms\model;
 
+use Dom\Node;
+use MohamadRZ\NovaPerms\node\AbstractNode;
+
 class User extends PermissionHolder
 {
     private string $primaryKey;
@@ -56,8 +59,13 @@ class User extends PermissionHolder
         return $this->primaryKey;
     }
 
-    public function importNodes(array $data): void
+    public function importNodes(array $nodes): void
     {
-        
+        $this->clearPermissions();
+        foreach ($nodes as $node) {
+            if ($node instanceof AbstractNode) {
+                $this->addPermission($node);
+            }
+        }
     }
 }
