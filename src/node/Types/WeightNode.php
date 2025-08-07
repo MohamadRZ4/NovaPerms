@@ -8,10 +8,10 @@ use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
 
 class WeightNode extends AbstractNode
 {
-    private string $weight;
+    private int $weight;
 
     public function __construct(
-        string $weight,
+        int $weight,
         bool $value = true,
         int $expiry = -1,
         ?BaseContextSet $context = null
@@ -19,12 +19,12 @@ class WeightNode extends AbstractNode
         parent::__construct("weight.{$weight}", $value, $expiry, $context);
         $this->weight = $weight;
     }
-    public static function builder(string $group): WeightNodeBuilder
+    public static function builder(int $weight): WeightNodeBuilder
     {
-        return new WeightNodeBuilder($group);
+        return new WeightNodeBuilder($weight);
     }
     public function getType(): string { return 'weight'; }
-    public function getWeight(): string { return $this->weight; }
+    public function getWeight(): int { return $this->weight; }
     public function toNodeString(): string
     {
         return "weight.{$this->weight}";
@@ -40,9 +40,9 @@ class WeightNode extends AbstractNode
 
 class WeightNodeBuilder extends AbstractNodeBuilder
 {
-    private string $weight;
-    public function __construct(string $weight) { $this->weight = $weight; }
-    public function weight(string $weight): self { $this->weight = $weight; return $this; }
+    private int $weight;
+    public function __construct(int $weight) { $this->weight = $weight; }
+    public function weight(int $weight): self { $this->weight = $weight; return $this; }
     public function build(): WeightNode
     {
         return new WeightNode(

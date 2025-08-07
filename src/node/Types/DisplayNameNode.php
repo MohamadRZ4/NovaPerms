@@ -19,9 +19,9 @@ class DisplayNameNode extends AbstractNode
         parent::__construct("displayname.{$displayname}", $value, $expiry, $context);
         $this->displayname = $displayname;
     }
-    public static function builder(string $group): DisplayNameNodeBuilder
+    public static function builder(string $displayname): DisplayNameNodeBuilder
     {
-        return new DisplayNameNodeBuilder($group);
+        return new DisplayNameNodeBuilder($displayname);
     }
     public function getType(): string { return 'displayname'; }
     public function getDisplayName(): string { return $this->displayname; }

@@ -3,6 +3,8 @@
 namespace MohamadRZ\NovaPerms\context;
 
 use MohamadRZ\NovaPerms\context\calculators\ContextCalculator;
+use MohamadRZ\NovaPerms\context\calculators\GamemodeContextCalculator;
+use MohamadRZ\NovaPerms\context\calculators\WorldContextCalculator;
 use MohamadRZ\NovaPerms\context\providers\DefaultContextProvider;
 use MohamadRZ\NovaPerms\context\providers\StaticContextProvider;
 use pocketmine\player\Player;
@@ -13,10 +15,13 @@ class ContextManager
     private StaticContextProvider $staticProvider;
     private DefaultContextProvider $defaultProvider;
 
-    public function __construct(string $configPath = null)
+    public function __construct(string $configPath)
     {
         $this->staticProvider = new StaticContextProvider($configPath);
         $this->defaultProvider = new DefaultContextProvider($configPath);
+
+        $this->registerCalculator(new WorldContextCalculator());
+        $this->registerCalculator(new GamemodeContextCalculator());
     }
 
     public function registerCalculator(ContextCalculator $calculator): void

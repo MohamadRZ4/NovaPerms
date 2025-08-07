@@ -10,9 +10,9 @@ class DefaultContextProvider
     private array $defaultContexts = [];
     private string $configPath;
 
-    public function __construct(?string $configPath = null)
+    public function __construct(string $configPath)
     {
-        $this->configPath = $configPath ?? __DIR__ . '/contexts.json';
+        $this->configPath = $configPath .'/contexts.json';
         $this->loadDefaultContexts();
     }
 

@@ -28,61 +28,41 @@ class UserManager
         return $this->cache->getAll();
     }
 
-    private function getCacheKey(string|Player|User $primaryKeyOrUser): string {
-        $primaryKeyType = NovaPermsPlugin::getConfigManager()->getPrimaryKey();
-
-        if ($primaryKeyOrUser instanceof User) {
-            return match ($primaryKeyType) {
-                PrimaryKeys::XUID => $primaryKeyOrUser->getXuid(),
-                PrimaryKeys::USERNAME => $primaryKeyOrUser->getUsername(),
-            };
-        }
-
-        if ($primaryKeyOrUser instanceof Player) {
-            return match ($primaryKeyType) {
-                PrimaryKeys::XUID => $primaryKeyOrUser->getXuid(),
-                PrimaryKeys::USERNAME => $primaryKeyOrUser->getName(),
-            };
-        }
-
-        return $primaryKeyOrUser;
-    }
-
-    public function getOrMake($primaryKey): User
+    public function getOrMake($username): User
     {
-        if ($this->cache->exists($primaryKey)) {
-            return $this->cache->get($primaryKey);
+        if ($this->cache->exists($username)) {
+            return $this->cache->get($username);
         } else {
-            $user = new User($primaryKey);
-            $this->cache->set($primaryKey, $user);
+            $user = new User($username);
+            $this->cache->set($username, $user);
             return $user;
         }
     }
 
-    public function getIfLoaded($primaryKey): ?User
+    public function getIfLoaded($username): ?User
     {
-        return $this->cache->exists($primaryKey)
-            ? $this->cache->get($primaryKey)
+        return $this->cache->exists($username)
+            ? $this->cache->get($username)
             : null;
     }
 
-    public function isLoaded($primaryKey): bool
+    public function isLoaded($username): bool
     {
-        return $this->cache->exists($primaryKey);
+        return $this->cache->exists($username);
     }
 
-    public function unload($primaryKey): void
+    public function unload($username): void
     {
-        $user = $this->getOrMake($primaryKey);
+        $user = $this->getOrMake($username);
         NovaPermsPlugin::getStorage()->saveUser($user);
         $user->clearNodes();
-        $this->cache->delete($primaryKey);
+        $this->cache->delete($username);
     }
 
-    public function retainAll(array $primaryKeys): void
+    public function retainAll(array $username): void
     {
         $allKeys = array_keys($this->cache->getAll());
-        $toRemove = array_diff($allKeys, $primaryKeys);
+        $toRemove = array_diff($allKeys, $username);
         foreach ($toRemove as $key) {
             $this->unload($key);
         }

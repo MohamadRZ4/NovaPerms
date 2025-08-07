@@ -2,18 +2,24 @@
 
 namespace MohamadRZ\NovaPerms\model;
 
-use MohamadRZ\NovaPerms\node\AbstractNode;
+use MohamadRZ\NovaPerms\model\PermissionHolder;
+use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
+use MohamadRZ\NovaPerms\node\Types\WeightNode;
+use MohamadRZ\NovaPerms\node\Types\DisplayNameNode;
+use MohamadRZ\NovaPerms\node\Types\PrefixNode;
+use MohamadRZ\NovaPerms\node\Types\SuffixNode;
+use MohamadRZ\NovaPerms\context\ContextSet;
+use MohamadRZ\NovaPerms\context\ImmutableContextSet;
+use pocketmine\player\Player;
 
 class Group extends PermissionHolder
 {
     private string $name;
+    private static ?GroupManager $groupManager = null;
 
     public function __construct(string $groupName)
     {
-        parent::__construct();
         $this->name = $groupName;
-        $this->setHolderId($groupName);
-        $this->setHolderType('group');
     }
 
     public function getName(): string
@@ -21,31 +27,4 @@ class Group extends PermissionHolder
         return $this->name;
     }
 
-    public function setName(string $name): void
-    {
-        $this->name = $name;
-    }
-
-    protected function setHolderId(string $id): void
-    {
-        $this->holderId = $id;
-    }
-
-    protected function setHolderType(string $type): void
-    {
-        $this->holderType = $type;
-    }
-
-    /**
-     * @param AbstractNode[] $nodes
-     */
-    public function importNodes(array $nodes): void
-    {
-        $this->clearNodes();
-        foreach ($nodes as $node) {
-            if ($node instanceof AbstractNode) {
-                $this->addNode($node);
-            }
-        }
-    }
 }

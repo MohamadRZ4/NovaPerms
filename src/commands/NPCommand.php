@@ -25,6 +25,8 @@ class NPCommand extends Command
     protected function buildTree(): CommandNode
     {
         $root = new RootNode();
+        $root->registerSubCommand(new UserRootNode());
+        $root->registerSubCommand(new GroupRootNode());
         $root->registerSubCommand(new TimingRootNode(NovaPermsPlugin::getTimings()));
         //$root->registerSubCommand(new VerboseRootNode($this->verboseHandler)); i cant add PermissionCheckEvent
         return $root;

@@ -11,10 +11,12 @@ class DimensionContextCalculator implements ContextCalculator
     public function calculate(Player $player): ContextSet
     {
         $world = $player->getWorld();
-        $dimension = match($world->getDimension()) {
-            0 => 'overworld',
-            1 => 'nether',
-            2 => 'end',
+        $generatorName = $world->getProvider()->getWorldData()->getGenerator();
+
+        $dimension = match(strtolower($generatorName)) {
+            'nether', 'hell' => 'nether',
+            'end', 'ender' => 'end',
+            'normal', 'overworld', 'default' => 'overworld',
             default => 'unknown'
         };
 

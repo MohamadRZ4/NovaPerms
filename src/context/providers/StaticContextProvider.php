@@ -12,7 +12,7 @@ class StaticContextProvider
 
     public function __construct(string $configPath = null)
     {
-        $this->configPath = $configPath ?? __DIR__ . '/contexts.json';
+        $this->configPath = $configPath . '/contexts.json';
         $this->loadStaticContexts();
     }
 
