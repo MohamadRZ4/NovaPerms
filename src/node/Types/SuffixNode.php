@@ -37,8 +37,7 @@ class SuffixNode extends AbstractNode
     {
         return new SuffixNodeBuilder($this->suffix, $this->priority)
             ->value($this->value)
-            ->expiry($this->expiry)
-            ->withContext($this->context);
+            ->expiry($this->expiry);
     }
 }
 
@@ -60,8 +59,7 @@ class SuffixNodeBuilder extends AbstractNodeBuilder
             $this->suffix,
             $this->priority,
             $this->value,
-            $this->expiry,
-            $this->context
+            $this->expiry
         );
     }
 }

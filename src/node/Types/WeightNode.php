@@ -13,8 +13,7 @@ class WeightNode extends AbstractNode
     public function __construct(
         int $weight,
         bool $value = true,
-        int $expiry = -1,
-        ?BaseContextSet $context = null
+        int $expiry = -1
     ) {
         parent::__construct("weight.{$weight}", $value, $expiry, $context);
         $this->weight = $weight;
@@ -33,8 +32,7 @@ class WeightNode extends AbstractNode
     {
         return new WeightNodeBuilder($this->weight)
             ->value($this->value)
-            ->expiry($this->expiry)
-            ->withContext($this->context);
+            ->expiry($this->expiry);
     }
 }
 
@@ -48,8 +46,7 @@ class WeightNodeBuilder extends AbstractNodeBuilder
         return new WeightNode(
             $this->weight,
             $this->value,
-            $this->expiry,
-            $this->context
+            $this->expiry
         );
     }
 }

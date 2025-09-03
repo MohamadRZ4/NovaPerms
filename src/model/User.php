@@ -2,146 +2,59 @@
 
 namespace MohamadRZ\NovaPerms\model;
 
-use MohamadRZ\NovaPerms\context\ContextSet;
 use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\Types\PermissionNode;
-use MohamadRZ\NovaPerms\NovaPermsPlugin;
-use pocketmine\permission\PermissionAttachment;
+use pocketmine\player\OfflinePlayer;
 use pocketmine\player\Player;
-use pocketmine\Server;
-use MohamadRZ\NovaPerms\context\ImmutableContextSet;
+use pocketmine\permission\PermissionAttachment;
 
 class User extends PermissionHolder
 {
-    private string $username;
-    protected ?Player $player = null;
+    private array $groups = [];
+
+    /** @var PermissionAttachment|null */
     private ?PermissionAttachment $attachment = null;
-    private bool $needsUpdate = true;
+    private array $lastAppliedPermissions = [];
 
-    public function __construct(string $username)
+    public function __construct()
     {
-        $this->username = $username;
+
     }
 
-    public function getParent(): ?Player
+    public function addGroup(string $groupName): void
     {
-        if (isset($this->player) && $this->player->isOnline()) {
-            return $this->player;
-        } else {
-            $parent = Server::getInstance()->getPlayerExact($this->getUsername());
-            if ($parent !== null) {
-                $this->player = $parent;
-                return $this->player;
-            }
-        }
-
-        return null;
+        $this->groups[] = $groupName;
     }
 
-    public function getUsername(): string
+    public function getGroups(): array
     {
-        return $this->username;
+        return $this->groups;
     }
 
-    public function setUsername(string $username): void
+    public function attachToPlayer(Player $player): void
     {
-        $this->username = $username;
-        $this->markForUpdate();
-    }
-
-    public function setNode(AbstractNode $node): void
-    {
-        parent::setNode($node);
-        $this->markForUpdate();
-    }
-
-    public function unsetNode(AbstractNode $target): void
-    {
-        parent::unsetNode($target);
-        $this->markForUpdate();
-    }
-
-    public function clearCache(): void
-    {
-        parent::clearCache();
-        $this->markForUpdate();
-    }
-
-    private function markForUpdate(): void
-    {
-        $this->needsUpdate = true;
-    }
-
-    public function updatePermissions(): void
-    {
-        $player = $this->getParent();
-        if ($player === null) {
-            return;
-        }
-
         if ($this->attachment === null) {
-            $this->attachment = $player->addAttachment(NovaPermsPlugin::getInstance());
-        }
-
-        $this->attachment->clearPermissions();
-
-        $context = $this->getPlayerContext($player);
-
-        $allNodes = $this->getAllNodes(true, $context);
-
-        foreach ($allNodes as $node) {
-            if (!$node instanceof AbstractNode) return;
-            $this->attachment->setPermission($node->getKey(), $node->getValue());
-        }
-
-        $this->needsUpdate = false;
-    }
-
-    public function autoUpdateIfNeeded(): void
-    {
-        if ($this->needsUpdate) {
-            $this->updatePermissions();
+            $this->attachment = $player->addAttachment($player->getServer()->getPluginManager()->getPlugin("NovaPerms"));
         }
     }
 
-    public function forceUpdate(): void
+    public function updatePermissions(Player $player, GroupManager $manager): void
     {
-        $this->needsUpdate = true;
-        $this->updatePermissions();
-    }
-
-    private function getPlayerContext(Player $player): ContextSet
-    {
-        return NovaPermsPlugin::getContextManager()->calculateContexts($player);
-    }
-
-    public function removeAttachment(): void
-    {
-        if ($this->attachment !== null) {
-            $this->attachment->clearPermissions();
-            $this->attachment = null;
+        if ($this->attachment === null) {
+            $this->attachToPlayer($player);
         }
-    }
 
-    public function onPlayerJoin(Player $player): void
-    {
-        $this->player = $player;
-        $this->forceUpdate();
-    }
+        $currentPermissions = $this->getAllInheritancePermissions($manager);
+        $toAdd = array_diff_assoc($currentPermissions, $this->lastAppliedPermissions);
+        $toRemove = array_diff_key($this->lastAppliedPermissions, $currentPermissions);
 
-    public function onPlayerQuit(): void
-    {
-        $this->removeAttachment();
-        $this->player = null;
-    }
+        foreach ($toRemove as $perm => $_) {
+            $this->attachment->unsetPermission($perm);
+        }
 
-    public function onWorldChange(): void
-    {
-        $this->forceUpdate();
-    }
+        foreach ($toAdd as $perm => $value) {
+            $this->attachment->setPermission($perm, $value);
+        }
 
-    public function getName(): ?string
-    {
-        return $this->username;
+        $this->lastAppliedPermissions = $currentPermissions;
     }
 }

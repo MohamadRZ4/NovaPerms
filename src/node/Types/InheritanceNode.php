@@ -14,9 +14,8 @@ class InheritanceNode extends AbstractNode
         string $group,
         bool $value = true,
         int $expiry = -1,
-        ?BaseContextSet $context = null
     ) {
-        parent::__construct("group.{$group}", $value, $expiry, $context);
+        parent::__construct("group.{$group}", $value, $expiry);
         $this->group = $group;
     }
     public static function builder(string $group): InheritanceNodeBuilder
@@ -33,8 +32,7 @@ class InheritanceNode extends AbstractNode
     {
         return new InheritanceNodeBuilder($this->group)
             ->value($this->value)
-            ->expiry($this->expiry)
-            ->withContext($this->context);
+            ->expiry($this->expiry);
     }
 }
 
@@ -48,8 +46,7 @@ class InheritanceNodeBuilder extends AbstractNodeBuilder
         return new InheritanceNode(
             $this->group,
             $this->value,
-            $this->expiry,
-            $this->context
+            $this->expiry
         );
     }
 }

@@ -15,10 +15,9 @@ class PrefixNode extends AbstractNode
         string $prefix,
         int $priority,
         bool $value = true,
-        int $expiry = -1,
-        ?BaseContextSet $context = null
+        int $expiry = -1
     ) {
-        parent::__construct("prefix.{$priority}.{$prefix}", $value, $expiry, $context);
+        parent::__construct("prefix.{$priority}.{$prefix}", $value, $expiry);
         $this->prefix = $prefix;
         $this->priority = $priority;
     }
@@ -37,8 +36,7 @@ class PrefixNode extends AbstractNode
     {
         return new PrefixNodeBuilder($this->prefix, $this->priority)
             ->value($this->value)
-            ->expiry($this->expiry)
-            ->withContext($this->context);
+            ->expiry($this->expiry);
     }
 }
 
@@ -60,8 +58,7 @@ class PrefixNodeBuilder extends AbstractNodeBuilder
             $this->prefix,
             $this->priority,
             $this->value,
-            $this->expiry,
-            $this->context
+            $this->expiry
         );
     }
 }

@@ -14,9 +14,8 @@ class DisplayNameNode extends AbstractNode
         string $displayname,
         bool $value = true,
         int $expiry = -1,
-        ?BaseContextSet $context = null
     ) {
-        parent::__construct("displayname.{$displayname}", $value, $expiry, $context);
+        parent::__construct("displayname.{$displayname}", $value, $expiry);
         $this->displayname = $displayname;
     }
     public static function builder(string $displayname): DisplayNameNodeBuilder
@@ -33,8 +32,7 @@ class DisplayNameNode extends AbstractNode
     {
         return new DisplayNameNodeBuilder($this->displayname)
             ->value($this->value)
-            ->expiry($this->expiry)
-            ->withContext($this->context);
+            ->expiry($this->expiry);
     }
 }
 
@@ -48,8 +46,7 @@ class DisplayNameNodeBuilder extends AbstractNodeBuilder
         return new DisplayNameNode(
             $this->displayName,
             $this->value,
-            $this->expiry,
-            $this->context
+            $this->expiry
         );
     }
 }

@@ -22,7 +22,7 @@ final class NodeSerializer
                 "name"   => $node->getKey(),
                 "value"  => $node->getValue(),
                 "expire" => $node->getExpiry(),
-                "context"=> ContextSerializer::serialize($node->getContext()),
+                /*"context"=> ContextSerializer::serialize($node->getContext()),*/
             ];
             $result[] = $entry;
         }

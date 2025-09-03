@@ -18,8 +18,7 @@ class PermissionNode extends AbstractNode
     {
         return new PermissionNodeBuilder($this->key)
             ->value($this->value)
-            ->expiry($this->expiry)
-            ->withContext($this->context);
+            ->expiry($this->expiry);
     }
 }
 
@@ -31,8 +30,7 @@ class PermissionNodeBuilder extends AbstractNodeBuilder
         return new PermissionNode(
             $this->key,
             $this->value,
-            $this->expiry,
-            $this->context
+            $this->expiry
         );
     }
 }

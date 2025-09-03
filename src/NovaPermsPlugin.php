@@ -4,24 +4,9 @@ declare(strict_types=1);
 
 namespace MohamadRZ\NovaPerms;
 
-use MohamadRZ\NovaPerms\configs\ConfigManager;
-use MohamadRZ\NovaPerms\context\ContextManager;
-use MohamadRZ\NovaPerms\context\ImmutableContextSet;
-use MohamadRZ\NovaPerms\context\SimpleContext;
+use MohamadRZ\NovaPerms\config\ConfigManager;
 use MohamadRZ\NovaPerms\model\GroupManager;
-use MohamadRZ\NovaPerms\model\NodeManager;
-use MohamadRZ\NovaPerms\model\UserManager;
-use MohamadRZ\NovaPerms\node\Types\DisplayNameNode;
-use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
-use MohamadRZ\NovaPerms\node\Types\MetaNode;
-use MohamadRZ\NovaPerms\node\Types\PermissionNode;
-use MohamadRZ\NovaPerms\node\Types\PrefixNode;
-use MohamadRZ\NovaPerms\node\Types\SuffixNode;
-use MohamadRZ\NovaPerms\node\Types\WeightNode;
-use MohamadRZ\NovaPerms\storage\implementations\StorageImplementation;
 use MohamadRZ\NovaPerms\storage\Storage;
-use MohamadRZ\NovaPerms\storage\StorageFactory;
-use MohamadRZ\NovaPerms\timings\Timings;
 use MohamadRZ\NovaPerms\utils\Duration;
 use MohamadRZ\NovaPerms\utils\ExecuteTimer;
 use pocketmine\player\Player;
@@ -33,12 +18,8 @@ class NovaPermsPlugin extends PluginBase {
 
     private static string $datePath;
     private static ConfigManager $configManager;
-    private static Timings $timings;
-    private static NodeManager $permissionManager;
-    private static UserManager $userManager;
     private static Storage $storage;
     private static GroupManager $groupManager;
-    private static ContextManager $contextManager;
 
     protected function onLoad(): void
     {
@@ -63,14 +44,9 @@ class NovaPermsPlugin extends PluginBase {
         $timer = new ExecuteTimer();
 
         self::$datePath = $this->getDataFolder();
-        self::$configManager = new ConfigManager(self::$datePath);
-        self::$timings = new Timings(self::$datePath . "/timings/", self::$configManager);
         self::$storage = new Storage($this);
-
-        self::$contextManager = new ContextManager(self::$datePath);
-        self::$permissionManager = new NodeManager();
+        self::$configManager = new ConfigManager($this, $this->getDataFolder());
         self::$groupManager = new GroupManager();
-        self::$userManager = new UserManager();
 
         $time = $timer->end();
         $this->getLogger()->info("§aSuccessfully enabled! §7(Took §b" . $time . "ms§7)");
@@ -88,37 +64,6 @@ class NovaPermsPlugin extends PluginBase {
         return self::$datePath;
     }
 
-    /**
-     * @return ConfigManager
-     */
-    public static function getConfigManager(): ConfigManager
-    {
-        return self::$configManager;
-    }
-
-    /**
-     * @return Timings
-     */
-    public static function getTimings(): Timings
-    {
-        return self::$timings;
-    }
-
-    /**
-     * @return NodeManager
-     */
-    public static function getPermissionManager(): NodeManager
-    {
-        return self::$permissionManager;
-    }
-
-    /**
-     * @return UserManager
-     */
-    public static function getUserManager(): UserManager
-    {
-        return self::$userManager;
-    }
 
     /**
      * @return Storage
@@ -137,11 +82,11 @@ class NovaPermsPlugin extends PluginBase {
     }
 
     /**
-     * @return ContextManager
+     * @return ConfigManager
      */
-    public static function getContextManager(): ContextManager
+    public static function getConfigManager(): ConfigManager
     {
-        return self::$contextManager;
+        return self::$configManager;
     }
 
 /*    public function getPlayerGroups(Player $player, array $allgroups): array
