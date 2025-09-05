@@ -30,7 +30,7 @@ class DisplayNameNode extends AbstractNode
     }
     public function toBuilder(): DisplayNameNodeBuilder
     {
-        return new DisplayNameNodeBuilder($this->displayname)
+        return (new DisplayNameNodeBuilder($this->displayname))
             ->value($this->value)
             ->expiry($this->expiry);
     }

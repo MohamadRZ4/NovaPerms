@@ -34,7 +34,7 @@ class MetaNode extends AbstractNode
     }
     public function toBuilder(): MetaNodeBuilder
     {
-        return new MetaNodeBuilder($this->metaKey, $this->metaValue)
+        return (new MetaNodeBuilder($this->metaKey, $this->metaValue))
             ->value($this->value)
             ->expiry($this->expiry);
     }

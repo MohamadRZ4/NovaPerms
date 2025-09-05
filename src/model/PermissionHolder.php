@@ -5,6 +5,7 @@ namespace MohamadRZ\NovaPerms\model;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\Types\PermissionNodeBuilder;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
+use pocketmine\permission\PermissionManager;
 
 abstract class PermissionHolder
 {
@@ -16,7 +17,7 @@ abstract class PermissionHolder
     public function addPermission(AbstractNode|string $node, bool $value = true): void
     {
         if (!$node instanceof AbstractNode) {
-            $node = new PermissionNodeBuilder($node)->value($value)->build();
+            $node = (new PermissionNodeBuilder($node))->value($value)->build();
         } elseif ($node instanceof InheritanceNode) {
             $this->addInheritance($node);
         }
@@ -64,24 +65,15 @@ abstract class PermissionHolder
         $this->inheritances[] = $node;
     }
 
-    public function getAllInheritancePermissions(GroupManager $manager, array &$visited = []): array
+    public function getAllKnownPermissions(): array
     {
-        $id = spl_object_id($this);
-        if (isset($visited[$id])) {
-            return [];
-        }
-        $visited[$id] = true;
+        $list = [];
 
-        $perms = $this->permissions;
-
-        foreach ($this->inheritances as $inherit) {
-            $parentGroup = $manager->getGroup($inherit->getGroup());
-            if ($parentGroup !== null) {
-                $perms += $parentGroup->getAllInheritancePermissions($manager, $visited);
-            }
+        foreach (PermissionManager::getInstance()->getPermissions() as $perm) {
+            $list[] = $perm->getName();
         }
 
-        return $perms;
+        return $list;
     }
 
     private function removeInheritance(InheritanceNode $targetNode): void

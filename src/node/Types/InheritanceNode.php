@@ -30,7 +30,7 @@ class InheritanceNode extends AbstractNode
     }
     public function toBuilder(): InheritanceNodeBuilder
     {
-        return new InheritanceNodeBuilder($this->group)
+        return (new InheritanceNodeBuilder($this->group))
             ->value($this->value)
             ->expiry($this->expiry);
     }

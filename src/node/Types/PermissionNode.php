@@ -16,7 +16,7 @@ class PermissionNode extends AbstractNode
 
     public function toBuilder(): PermissionNodeBuilder
     {
-        return new PermissionNodeBuilder($this->key)
+        return (new PermissionNodeBuilder($this->key))
             ->value($this->value)
             ->expiry($this->expiry);
     }

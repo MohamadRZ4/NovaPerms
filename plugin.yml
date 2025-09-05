@@ -5,33 +5,14 @@ main: MohamadRZ\NovaPerms\NovaPermsPlugin
 api: 5.0.0
 src-namespace-prefix: MohamadRZ\NovaPerms
 
+commands:
+  novaperms:
+    permission: novaperms.use
+    aliases:
+      - np
+
 permissions:
-  novaperms.*:
-    description: All NovaPerms permissions
-    default: op
-
-  novaperms.timing:
-    description: Access to timing commands
-    default: op
-
-  novaperms.timing.toggle:
-    description: Enable/disable timing system
-    default: op
-
-  novaperms.timing.export:
-    description: Export timing results
-    default: op
-
-  novaperms.timing.reset:
-    description: Reset timings
-    default: op
-
-  novaperms.timing.stats:
-    description: View timing statistics
-    default: op
-
-  novaperms.timing.list:
-    description: List timing reports
-    default: op
+  novaperms.use:
+    default: true
 
 ...

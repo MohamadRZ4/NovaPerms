@@ -18,25 +18,23 @@ final class NodeDeserializer
     {
         $result = [];
 
-        if ($rawData === []) {
-            /*$result[] = ImmutableContextSet::empty();*/
+        if (empty($rawData)) {
             return $result;
         }
 
         foreach ($rawData as $permission) {
-            $name = $permission["name"] ?? "";
-            $value = $permission["value"] ?? true;
-            $expire = $permission["expire"] ?? null;
-            $context = $permission["context"] ?? [];
-            /*$context = ContextDeserializer::deserialize($context);*/
-
-            $parts = explode(".", $name);
-            if (count($parts) === 0) {
+            $name = trim($permission["name"] ?? "");
+            if ($name === "") {
                 continue;
             }
 
-            $type = strtolower($parts[0]);
-            $node = null;
+            $value   = $permission["value"]  ?? true;
+            $expire  = $permission["expire"] ?? null;
+            $context = $permission["context"] ?? [];
+
+            $parts = explode(".", $name);
+            $type  = strtolower($parts[0] ?? "");
+            $node  = null;
 
             switch ($type) {
                 case "perfix":
@@ -80,11 +78,17 @@ final class NodeDeserializer
                 $node = PermissionNode::builder($name);
             }
 
-            $node->value($value)->expiry($expire)/*->withContext($context)*/;
+            $node->value($value);
+            if ($expire !== null) {
+                $node->expiry((int)$expire);
+            }
 
-            $result[] = $node;
+            //$node->withContext($context);
+
+            $result[] = $node->build();
         }
 
         return $result;
     }
+
 }

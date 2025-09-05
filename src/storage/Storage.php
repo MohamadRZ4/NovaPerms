@@ -5,8 +5,9 @@ namespace MohamadRZ\NovaPerms\storage;
 use MohamadRZ\NovaPerms\model\Group;
 use MohamadRZ\NovaPerms\model\User;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use MohamadRZ\NovaPerms\storage\file\YmlStorage;
 
-class Storage implements IStorage
+class Storage
 {
     private IStorage $storage;
 
@@ -18,7 +19,7 @@ class Storage implements IStorage
     /**
      * @return void
      */
-    #[\Override] public function init(): void
+    public function init(): void
     {
         $type = NovaPermsPlugin::getConfigManager()->getStorageType();
         switch ($type) {
@@ -31,58 +32,61 @@ class Storage implements IStorage
                 $this->storage = new YmlStorage();
                 break;
         }
+        NovaPermsPlugin::getInstance()->getLogger()->info("Loading storage provider... [".$this->storage->getName()."]");
+        $this->storage->init();
     }
 
     /**
      * @param string $username
-     * @return void
+     * @return User|null
      */
-    #[\Override] public function loadUser(string $username): void
+    public function loadUser(string $username): ?User
     {
-        $this->loadUser($username);
+        return $this->storage->loadUser($username);
     }
 
     /**
      * @param array $usernames
-     * @return void
+     * @return array
      */
-    #[\Override] public function loadUsers(array $usernames): void
+    public function loadUsers(array $usernames): array
     {
-        $this->loadUsers($usernames);
+        return $this->storage->loadUsers($usernames);
     }
 
     /**
-     * @param User $username
+     * @param User $user
      * @return void
      */
-    #[\Override] public function saveUser(User $username): void
+    public function saveUser(User $user): void
     {
-        $this->storage->saveUser($username);
+        $this->storage->saveUser($user);
     }
 
     /**
-     * @param array $usernames
-     * @return void
+     * @param string $groupName
+     * @return Group|null
      */
-    #[\Override] public function saveUsers(array $usernames): void
+    public function loadGroup(string $groupName): ?Group
     {
-        $this->storage->saveUsers($usernames);
+        return $this->storage->loadGroup($groupName);
     }
 
     /**
-     * @param string $group
+     * @param string $groupName
+     * @param array $nodes
      * @return void
      */
-    #[\Override] public function loadGroup(string $group): void
+    public function createAndLoadGroup(string $groupName, array $nodes = []): void
     {
-        $this->storage->loadGroup($group);
+        $this->storage->createAndLoadGroup($groupName, $nodes);
     }
 
     /**
      * @param Group $group
      * @return void
      */
-    #[\Override] public function saveGroup(Group $group): void
+    public function saveGroup(Group $group): void
     {
         $this->storage->saveGroup($group);
     }
@@ -90,7 +94,7 @@ class Storage implements IStorage
     /**
      * @return void
      */
-    #[\Override] public function loadAllGroup(): void
+    public function loadAllGroup(): void
     {
         $this->storage->loadAllGroup();
     }
@@ -98,7 +102,7 @@ class Storage implements IStorage
     /**
      * @return void
      */
-    #[\Override] public function saveAllGroup(): void
+    public function saveAllGroup(): void
     {
         $this->storage->saveAllGroup();
     }

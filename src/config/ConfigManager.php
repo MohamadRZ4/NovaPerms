@@ -11,6 +11,7 @@ class ConfigManager
     private Config $config;
     public function __construct(NovaPermsPlugin $plugin, string $path)
     {
+        $plugin->getLogger()->info("Loading configuration...");
         $this->config = new Config($path . "config.yml", Config::YAML);
     }
 

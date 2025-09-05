@@ -6,12 +6,15 @@ namespace MohamadRZ\NovaPerms;
 
 use MohamadRZ\NovaPerms\config\ConfigManager;
 use MohamadRZ\NovaPerms\model\GroupManager;
+use MohamadRZ\NovaPerms\model\UserManager;
+use MohamadRZ\NovaPerms\node\Types\RegexPermission;
 use MohamadRZ\NovaPerms\storage\Storage;
-use MohamadRZ\NovaPerms\utils\Duration;
 use MohamadRZ\NovaPerms\utils\ExecuteTimer;
-use pocketmine\player\Player;
+use pocketmine\command\Command;
+use pocketmine\command\CommandSender;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\SingletonTrait;
+use pocketmine\utils\TextFormat as TF;
 
 class NovaPermsPlugin extends PluginBase {
     use SingletonTrait;
@@ -20,6 +23,7 @@ class NovaPermsPlugin extends PluginBase {
     private static ConfigManager $configManager;
     private static Storage $storage;
     private static GroupManager $groupManager;
+    private static UserManager $userManager;
 
     protected function onLoad(): void
     {
@@ -32,24 +36,27 @@ class NovaPermsPlugin extends PluginBase {
         $version = $this->getDescription()->getVersion();
         $softWareName = $this->getServer()->getName();
         $softVersion = $this->getServer()->getVersion();
-
-        $logo = "
-        
-                §l§eNovaPerms §7| §bPermission System §8• §7v§a$version §r
-                  §7running on §b$softWareName §8/ §7$softVersion
-";
-
-        $this->getServer()->getLogger()->info($logo);
+        $logo = [
+            "§b      __   ",
+            "§b|\ | |__)  §eNovaPerms §bv$version    ",
+            "§b| \| |     §8running on $softWareName - $softVersion  "
+        ];
+        foreach ($logo as $line) {
+            $this->getLogger()->info($line);
+        }
 
         $timer = new ExecuteTimer();
 
         self::$datePath = $this->getDataFolder();
-        self::$storage = new Storage($this);
         self::$configManager = new ConfigManager($this, $this->getDataFolder());
+        self::$storage = new Storage($this);
         self::$groupManager = new GroupManager();
+        self::$groupManager->loadDefaults();
+        self::$userManager = new UserManager();
 
+        $this->getServer()->getPluginManager()->registerEvents(new EventListener(), $this);
         $time = $timer->end();
-        $this->getLogger()->info("§aSuccessfully enabled! §7(Took §b" . $time . "ms§7)");
+        $this->getLogger()->info("Successfully enabled! (took " . $time . "ms)");
         parent::onEnable();
     }
 
@@ -64,6 +71,68 @@ class NovaPermsPlugin extends PluginBase {
         return self::$datePath;
     }
 
+
+
+public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool
+{
+    if (strtolower($command->getName()) === "novaperms") {
+        $arg = array_shift($args) ?? null;
+        switch ($arg) {
+            case "myinfo":
+                $user = self::getUserManager()->getOrMake($sender->getName());
+                $permissions = $user->getPermissions();
+
+                $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+                $sender->sendMessage(TF::YELLOW . " NovaPerms " . TF::GRAY . "User Info");
+                $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+
+                if (empty($permissions)) {
+                    $sender->sendMessage(TF::GRAY . "You have no permissions assigned.");
+                } else {
+                    foreach ($permissions as $key => $node) {
+                        $expiry = ($node->getExpiry() === -1)
+                            ? TF::GREEN . "never"
+                            : TF::RED . date("Y-m-d H:i:s", $node->getExpiry()) . TF::GRAY
+                            . " (" . $this->formatTimeLeft($node->getExpiry()) . " left)";
+
+                        $sender->sendMessage(
+                            TF::AQUA . " - " . TF::WHITE . $key .
+                            TF::DARK_GRAY . " | " . TF::GREEN . ($node->getValue() ? "true" : "false") .
+                            TF::DARK_GRAY . " | " . TF::GRAY . "expires: " . $expiry
+                        );
+                    }
+                }
+
+                $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+                return true;
+                break;
+            case "addperm":
+                $user = self::getUserManager()->getOrMake($sender->getName());
+                $user->addPermission(RegexPermission::builder("pocketmine.*")->build());
+            default:
+                $sender->sendMessage(TF::YELLOW . "Usage: /novaperms myinfo");
+                break;
+        }
+    }
+    return parent::onCommand($sender, $command, $label, $args);
+}
+
+private function formatTimeLeft(int $timestamp): string
+{
+    $secondsLeft = $timestamp - time();
+    if ($secondsLeft <= 0) return "expired";
+
+    $days = intdiv($secondsLeft, 86400);
+    $hours = intdiv($secondsLeft % 86400, 3600);
+    $minutes = intdiv($secondsLeft % 3600, 60);
+
+    $parts = [];
+    if ($days > 0) $parts[] = "{$days}d";
+    if ($hours > 0) $parts[] = "{$hours}h";
+    if ($minutes > 0) $parts[] = "{$minutes}m";
+
+    return implode(" ", $parts);
+}
 
     /**
      * @return Storage
@@ -82,304 +151,18 @@ class NovaPermsPlugin extends PluginBase {
     }
 
     /**
+     * @return UserManager
+     */
+    public static function getUserManager(): UserManager
+    {
+        return self::$userManager;
+    }
+
+    /**
      * @return ConfigManager
      */
     public static function getConfigManager(): ConfigManager
     {
         return self::$configManager;
     }
-
-/*    public function getPlayerGroups(Player $player, array $allgroups): array
-    {
-        $playerGroups = [];
-        foreach ($allgroups as $group) {
-            if ($player->hasPermission("group." . $group->getName())) {
-                $playerGroups[] = $group;
-            }
-        }
-        return $playerGroups;
-    }
-
-    public function isPlayerInGroup(Player $player, string $groupName): bool {
-        return $player->hasPermission("group.".$groupName);
-    }
-
- Context System API Documentation
-A flexible context management system for tracking player states and permissions in PocketMine-MP plugins.
-
-Overview
-The Context System provides a way to track and manage contextual information about players (like world, gamemode, dimension) for use in permission systems and other conditional logic.
-
-Core Components
-Context Interface
-Represents a single context with key-value pair.
-
-
-content_copy
-php
-interface Context {
-    public function getKey(): string;
-    public function getValue(): string;
-    public function __toString(): string;
-}
-Usage:
-
-
-content_copy
-php
-$context = new SimpleContext('world', 'survival');
-echo $context->getKey();     // 'world'
-echo $context->getValue();   // 'survival'
-echo $context->__toString(); // 'world=survival'
-ContextSet Interface
-Collection of contexts with useful methods.
-
-
-content_copy
-php
-interface ContextSet extends \Countable {
-    public function isEmpty(): bool;
-    public function size(): int;
-    public function getContexts(): array;
-    public function containsKey(string $key): bool;
-    public function getValues(string $key): array;
-    public function contains(Context $context): bool;
-    public function toMap(): array;
-    public function immutableCopy(): ImmutableContextSet;
-    public function mutableCopy(): MutableContextSet;
-}
-Usage:
-
-
-content_copy
-php
-// Check if context set is empty
-if ($contextSet->isEmpty()) {
-    // Handle empty context
-}
-
-// Get total number of contexts
-$count = $contextSet->size();
-
-// Check if specific key exists
-if ($contextSet->containsKey('world')) {
-    $worldValues = $contextSet->getValues('world');
-}
-
-// Check if specific context exists
-$context = new SimpleContext('gamemode', 'creative');
-if ($contextSet->contains($context)) {
-    // Context found
-}
-ImmutableContextSet
-Read-only context collection that cannot be modified after creation.
-
-Creation Methods:
-
-
-content_copy
-php
-// Create empty context set
-$emptySet = ImmutableContextSet::empty();
-
-// Create with single context
-$contextSet = ImmutableContextSet::of('world', 'survival');
-
-// Create from array of contexts
-$contexts = [new SimpleContext('world', 'survival')];
-$contextSet = ImmutableContextSet::fromContexts($contexts);
-
-// Build complex context set
-$builder = ImmutableContextSet::builder();
-$contextSet = $builder
-    ->put('world', 'survival')
-    ->put('gamemode', 'creative')
-    ->build();
-Manipulation Methods:
-
-
-content_copy
-php
-// Add new context (returns new instance)
-$newSet = $contextSet->with('dimension', 'overworld');
-
-// Remove context (returns new instance)
-$newSet = $contextSet->without('gamemode');
-$newSet = $contextSet->without('world', 'survival'); // Remove specific value
-
-// Convert to mutable
-$mutableSet = $contextSet->mutableCopy();
-MutableContextSet
-Context collection that can be modified after creation.
-
-Usage:
-
-
-content_copy
-php
-// Create empty mutable set
-$mutableSet = MutableContextSet::create();
-
-// Add single context
-$mutableSet->add('world', 'survival');
-
-// Add multiple values for same key
-$mutableSet->add('permission', 'read');
-$mutableSet->add('permission', 'write');
-
-// Add all contexts from another set
-$mutableSet->addAll($otherContextSet);
-
-// Remove context
-$mutableSet->remove('world', 'survival');
-
-// Clear all contexts with specific key
-$mutableSet->removeAll('permission');
-
-// Clear everything
-$mutableSet->clear();
-
-// Convert to immutable
-$immutableSet = $mutableSet->immutableCopy();
-ContextManager
-Main manager for calculating and handling contexts.
-
-Initialization:
-
-
-content_copy
-php
-$manager = new ContextManager('/path/to/config');
-Core Methods:
-
-
-content_copy
-php
-// Calculate contexts for a player
-$player = $event->getPlayer();
-$contextSet = $manager->calculateContexts($player);
-
-// Register custom calculator
-$customCalculator = new MyCustomCalculator();
-$manager->registerCalculator($customCalculator);
-
-// Remove calculator
-$manager->unregisterCalculator('my_custom_key');
-
-// Get providers
-$staticProvider = $manager->getStaticProvider();
-$defaultProvider = $manager->getDefaultProvider();
-
-// Reload configuration
-$manager->reload();
-Context Calculators
-Calculate contexts based on player state.
-
-Built-in Calculators:
-
-
-content_copy
-php
-// World Context Calculator
-$worldCalc = new WorldContextCalculator();
-$contexts = $worldCalc->calculate($player);
-// Returns contexts like: world=survival_world
-
-// Gamemode Context Calculator
-$gamemodeCalc = new GamemodeContextCalculator();
-$contexts = $gamemodeCalc->calculate($player);
-// Returns contexts like: gamemode=creative
-Custom Calculator:
-
-
-content_copy
-php
-class MyCalculator extends ContextCalculator {
-    public function getContextKey(): string {
-        return 'my_context';
-    }
-
-    public function calculate(Player $player): ContextSet {
-        $contextSet = MutableContextSet::create();
-
-        // Your calculation logic
-        if ($player->hasPermission('special.permission')) {
-            $contextSet->add('special', 'true');
-        }
-
-        return $contextSet->immutableCopy();
-    }
-}
-Context Providers
-StaticContextProvider
-Provides fixed contexts from configuration.
-
-
-content_copy
-php
-$staticProvider = new StaticContextProvider('/path/to/config');
-
-// Get all static contexts
-$contexts = $staticProvider->getStaticContexts();
-
-// Reload from config
-$staticProvider->reload();
-DefaultContextProvider
-Provides default contexts when no specific contexts are found.
-
-
-content_copy
-php
-$defaultProvider = new DefaultContextProvider('/path/to/config');
-$defaultContexts = $defaultProvider->getDefaultContexts();
-Complete Usage Example
-
-content_copy
-php
-// Initialize the context system
-$manager = new ContextManager('/path/to/config');
-
-// Register custom calculator
-$manager->registerCalculator(new MyCustomCalculator());
-
-// When player joins or context changes
-$player = $event->getPlayer();
-$contexts = $manager->calculateContexts($player);
-
-// Check player contexts
-if ($contexts->containsKey('world')) {
-    $worldName = $contexts->getValues('world')[0];
-    echo "Player is in world: " . $worldName;
-}
-
-if ($contexts->contains(new SimpleContext('gamemode', 'creative'))) {
-    echo "Player is in creative mode";
-}
-
-// Use contexts for permission checking
-$contextMap = $contexts->toMap();
-foreach ($contextMap as $key => $values) {
-    echo "Context $key: " . implode(', ', $values) . "
-";
-}
-
-// Create conditional logic based on contexts
-if ($contexts->containsKey('world') &&
-    in_array('pvp_world', $contexts->getValues('world'))) {
-    // Enable PvP features
-}
-
-// Modify contexts if needed
-$mutableContexts = $contexts->mutableCopy();
-$mutableContexts->add('custom', 'value');
-$updatedContexts = $mutableContexts->immutableCopy();
-Key Features
-Immutable by default: Context sets are immutable for thread safety
-Flexible: Support for multiple values per context key
-Extensible: Easy to add custom context calculators
-Configurable: Static and default contexts from configuration files
-Efficient: Optimized for frequent context calculations
-Type-safe: Strong typing throughout the API*/
-
-
 }

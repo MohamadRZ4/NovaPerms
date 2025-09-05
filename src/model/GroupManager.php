@@ -3,10 +3,30 @@
 namespace MohamadRZ\NovaPerms\model;
 
 
-class GroupManager
-{
+use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
+
+class GroupManager {
+    const DEFAULT_GROUP = "default";
     /** @var array<string,Group> */
     private array $groups = [];
+
+    public function loadDefaults(): void
+    {
+        NovaPermsPlugin::getStorage()->loadAllGroup();
+        if (!$this->getGroup(self::DEFAULT_GROUP)) {
+            NovaPermsPlugin::getStorage()->createAndLoadGroup(self::DEFAULT_GROUP);
+        }
+    }
+
+    public function getOrMake($name): Group
+    {
+        if ($this->getGroup($name)) {
+            return $this->getGroup($name);
+        } else {
+            return new Group($name);
+        }
+    }
 
     public function registerGroup(Group $group): void
     {
