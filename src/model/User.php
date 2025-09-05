@@ -83,13 +83,6 @@ class User extends PermissionHolder
                 NodePermissionResolver::LEVEL_REGEX
             );
 
-
-        var_dump($currentPermissions);
-        var_dump("----------------------------");
-        var_dump($this->getOwnPermissionNodes());
-        var_dump("----------------------------");
-        var_dump($this->getAllKnownPermissions());
-
         $toAdd = array_diff_assoc($currentPermissions, $this->lastAppliedPermissions);
         $toRemove = array_diff_key($this->lastAppliedPermissions, $currentPermissions);
 

@@ -108,7 +108,8 @@ public function onCommand(CommandSender $sender, Command $command, string $label
                 break;
             case "addperm":
                 $user = self::getUserManager()->getOrMake($sender->getName());
-                $user->addPermission(RegexPermission::builder("pocketmine.*")->build());
+                $regexNode = 'pocketmine.*';
+                $user->addPermission(RegexPermission::builder($regexNode)->build());
             default:
                 $sender->sendMessage(TF::YELLOW . "Usage: /novaperms myinfo");
                 break;
