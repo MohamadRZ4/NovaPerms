@@ -149,7 +149,7 @@ class YmlStorage implements IStorage
      */
     public function createAndLoadGroup(string $groupName, array $nodes = []): void
     {
-        $group = new Group($groupName);
+        $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
         if (NodeSerializer::isSerializedNode($nodes)) {
             $nodes = $this->readNodes($nodes);
         }

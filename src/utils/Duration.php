@@ -4,65 +4,110 @@ namespace MohamadRZ\NovaPerms\utils;
 
 class Duration
 {
-    /** @var int|null Duration in seconds; null = infinite */
-    private ?int $seconds;
+    public const INFINITE = -1;
+    private int $seconds;
 
-    public function __construct(?int $seconds)
+    private function __construct(int $seconds)
     {
         $this->seconds = $seconds;
     }
 
-    /** ====== STATIC FACTORIES ====== */
-    public static function ofSeconds(int $seconds): self { return new self($seconds); }
-    public static function ofMinutes(int $minutes): self { return new self($minutes * 60); }
-    public static function ofHours(int $hours): self { return new self($hours * 3600); }
-    public static function ofDays(int $days): self { return new self($days * 86400); }
-    public static function ofWeeks(int $weeks): self { return new self($weeks * 604800); }
-    public static function zero(): self { return new self(0); }
-    public static function infinite(): self { return new self(null); }
-
-    /** ====== GETTERS ====== */
-    public function getSeconds(): ?int { return $this->seconds; }
-    public function getMinutes(): ?float { return $this->seconds === null ? null : $this->seconds / 60; }
-    public function getHours(): ?float { return $this->seconds === null ? null : $this->seconds / 3600; }
-    public function isInfinite(): bool { return $this->seconds === null; }
-    public function isZero(): bool { return $this->seconds === 0; }
-
-    /** ====== DURATION COMPARISON ====== */
-    /**
-     * Returns true if this duration is longer than or equal to the other duration.
-     */
-    public function longerThan(self $other): bool
+    public static function ofSeconds(int $seconds): self
     {
-        if ($this->isInfinite()) return !$other->isInfinite();
-        if ($other->isInfinite()) return false;
-        return $this->seconds >= $other->seconds;
+        return new self($seconds);
     }
 
-    public function shorterThan(self $other): bool
+    public static function permanent(): self
     {
-        if ($other->isInfinite()) return !$this->isInfinite();
-        if ($this->isInfinite()) return false;
-        return $this->seconds < $other->seconds;
+        return new self(self::INFINITE);
     }
 
-    /** ====== EXPIRY CHECKER ====== */
-    /**
-     * @param int $startTimestamp Unix epoch (seconds)
-     * @param int|null $now Default: current time
-     * @return bool true if expired OR zero duration, false if still valid OR infinite
-     */
-    public function isExpired(int $startTimestamp, ?int $now = null): bool
+    public static function fromString(string $input): self
     {
-        if ($this->isInfinite()) return false;
-        if ($this->isZero()) return true;
-        $now ??= time();
-        return ($startTimestamp + $this->seconds) <= $now;
+        $input = strtolower(trim($input));
+        if (in_array($input, ['permanent', 'never', 'infinite'], true)) {
+            return self::permanent();
+        }
+
+        preg_match_all('/(\d+)([wdhms])/', $input, $matches, PREG_SET_ORDER);
+        $seconds = 0;
+        foreach ($matches as $match) {
+            $number = (int) $match[1];
+            switch ($match[2]) {
+                case 'w': $seconds += $number * 604800; break;
+                case 'd': $seconds += $number * 86400; break;
+                case 'h': $seconds += $number * 3600; break;
+                case 'm': $seconds += $number * 60; break;
+                case 's': $seconds += $number; break;
+            }
+        }
+        return new self($seconds);
     }
 
-    public function getExpiryTimestamp(int $startTimestamp): ?int
+    public static function betweenNowAnd(int $timestamp): self
     {
-        if ($this->isInfinite()) return null;
-        return $startTimestamp + $this->seconds;
+        if ($timestamp <= 0) return new self(0);
+        $diff = $timestamp - time();
+        return new self($diff > 0 ? $diff : 0);
+    }
+
+    public static function fromEndTimestamp(int $end): self
+    {
+        return self::betweenNowAnd($end);
+    }
+
+    public function getSeconds(): int
+    {
+        return $this->seconds;
+    }
+
+    public function format(bool $short = true): string
+    {
+        if ($this->seconds === self::INFINITE) return "permanent";
+        if ($this->seconds <= 0) return $short ? "0s" : "0 seconds";
+
+        $time = $this->seconds;
+
+        $weeks = intdiv($time, 604800); $time %= 604800;
+        $days = intdiv($time, 86400);   $time %= 86400;
+        $hours = intdiv($time, 3600);   $time %= 3600;
+        $minutes = intdiv($time, 60);   $seconds = $time % 60;
+
+        $parts = [];
+        if ($weeks > 0)   $parts[] = $weeks . ($short ? 'w' : ' week' . ($weeks > 1 ? 's' : ''));
+        if ($days > 0)    $parts[] = $days . ($short ? 'd' : ' day' . ($days > 1 ? 's' : ''));
+        if ($hours > 0)   $parts[] = $hours . ($short ? 'h' : ' hour' . ($hours > 1 ? 's' : ''));
+        if ($minutes > 0) $parts[] = $minutes . ($short ? 'm' : ' minute' . ($minutes > 1 ? 's' : ''));
+        if ($seconds > 0) $parts[] = $seconds . ($short ? 's' : ' second' . ($seconds > 1 ? 's' : ''));
+
+        return implode($short ? ' ' : ', ', $parts);
+    }
+
+    public function __toString(): string
+    {
+        return $this->format();
+    }
+
+    public static function builder(): DurationBuilder
+    {
+        return new DurationBuilder();
+    }
+}
+
+class DurationBuilder
+{
+    private int $seconds = 0;
+    private bool $permanent = false;
+
+    public function weeks(int $weeks): self { $this->seconds += $weeks * 604800; return $this; }
+    public function days(int $days): self   { $this->seconds += $days * 86400;   return $this; }
+    public function hours(int $hours): self { $this->seconds += $hours * 3600;   return $this; }
+    public function minutes(int $minutes): self { $this->seconds += $minutes * 60; return $this; }
+    public function seconds(int $seconds): self { $this->seconds += $seconds;   return $this; }
+    public function permanent(): self { $this->permanent = true; return $this; }
+
+    public function build(): Duration
+    {
+        return $this->permanent ? Duration::permanent() : Duration::ofSeconds($this->seconds);
     }
 }

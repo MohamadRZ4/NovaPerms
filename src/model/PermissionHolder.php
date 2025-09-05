@@ -33,6 +33,21 @@ abstract class PermissionHolder
         unset($this->permissions[$name]);
     }
 
+    public function auditTemporaryNodes(): bool
+    {
+        $nodes = $this->getOwnPermissionNodes();
+        $changed = false;
+
+        foreach ($nodes as $node) {
+            if ($node->getExpiry() !== -1 && time() >= $node->getExpiry()) {
+                $this->removePermission($node);
+                $changed = true;
+            }
+        }
+
+        return $changed;
+    }
+
     public function hasPermission(AbstractNode|string $node): bool
     {
         $name = is_string($node) ? $node : $node->getKey();

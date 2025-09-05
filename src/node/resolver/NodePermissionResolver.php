@@ -67,7 +67,7 @@ class NodePermissionResolver
                     $collected[$node->getKey()] = $node->getValue();
                     continue;
                 }
- 
+
                 if ($level >= self::LEVEL_REGEX && $node instanceof RegexPermission) {
                     $pattern = $node->getKey();
 

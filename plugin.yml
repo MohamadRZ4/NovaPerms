@@ -5,14 +5,10 @@ main: MohamadRZ\NovaPerms\NovaPermsPlugin
 api: 5.0.0
 src-namespace-prefix: MohamadRZ\NovaPerms
 
-commands:
-  novaperms:
-    permission: novaperms.use
-    aliases:
-      - np
-
 permissions:
   novaperms.use:
     default: true
+  novaperms.help:
+    default: op
 
 ...

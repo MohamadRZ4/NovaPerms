@@ -16,7 +16,7 @@ abstract class AbstractNodeBuilder
     public function value(bool $value): self { $this->value = $value; return $this; }
     public function expiry(?int $expiry): self {
         if ($expiry !== null) {
-            $this->expiry = $expiry;
+            $this->expiry = time() + $expiry;
         }
         return $this;
     }

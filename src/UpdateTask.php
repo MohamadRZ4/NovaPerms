@@ -11,44 +11,17 @@ use pocketmine\scheduler\Task;
 
 class UpdateTask extends Task
 {
-    #[\Override]
     public function onRun(): void
     {
         $userManager = NovaPermsPlugin::getUserManager();
         $groupManager = NovaPermsPlugin::getGroupManager();
 
         foreach ($userManager->getAllUsers() as $user) {
-            $this->checkHolderNodes($user);
+            $user->auditTemporaryNodes();
         }
 
         foreach ($groupManager->getAllGroups() as $group) {
-            $this->checkHolderNodes($group);
+            $group->auditTemporaryNodes();
         }
-    }
-
-    /**
-     * @param PermissionHolder $holder
-     */
-    private function checkHolderNodes(PermissionHolder $holder): void
-    {
-        $nodes = $holder->getOwnPermissionNodes();
-        foreach ($nodes as $node) {
-            if ($this->isNodeExpired($node)) {
-                $holder->removePermission($node);
-                NovaPermsPlugin::getInstance()->getLogger()->debug("Removed expired node '{$node->getKey()}' from {$holder->getName()}");
-            }
-        }
-    }
-
-    private function isNodeExpired(AbstractNode $node): bool
-    {
-        if ($node->getExpiry() === -1) {
-            return false;
-        }
-
-        $duration = new Duration($node->getExpiry());
-        $expiry = $duration->getExpiryTimestamp(time());
-
-        return time() >= $expiry;
     }
 }
