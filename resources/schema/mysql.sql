@@ -1,0 +1,13 @@
+{init.users}
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    nodes JSON DEFAULT '[]'
+);
+
+{init.groups}
+CREATE TABLE IF NOT EXISTS groups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    nodes JSON DEFAULT '[]'
+);

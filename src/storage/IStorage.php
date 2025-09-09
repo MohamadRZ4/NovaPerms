@@ -4,19 +4,19 @@ namespace MohamadRZ\NovaPerms\storage;
 
 use MohamadRZ\NovaPerms\model\Group;
 use MohamadRZ\NovaPerms\model\User;
+use pocketmine\promise\Promise;
 
 interface IStorage
 {
-    public function init(): void;
     public function getName(): string;
-    public function loadUser(string $username): ?User;
-    public function loadUsers(array $usernames): array;
-    public function saveUser(User $user): void;
+    public function loadUser(string $username): Promise;
+    public function loadUsers(array $usernames): Promise;
+    public function saveUser(User $user): Promise;
 
-    public function loadGroup(string $groupName): ?Group;
-    public function createAndLoadGroup(string $groupName, array $nodes = []): void;
-    public function saveGroup(Group $group): void;
-    public function loadAllGroup(): void;
-    public function saveAllGroup(): void;
+    public function loadGroup(string $groupName): Promise;
+    public function createAndLoadGroup(string $groupName, array $nodes = []): Promise;
+    public function saveGroup(Group $group): Promise;
+    public function loadAllGroup(): Promise;
+    public function saveAllGroup(): Promise;
 
 }

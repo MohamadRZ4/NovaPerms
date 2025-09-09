@@ -15,8 +15,8 @@ class ConfigManager
         $this->config = new Config($path . "config.yml", Config::YAML);
     }
 
-    public function getStorageType()
+    public function getDatabase()
     {
-        return $this->config->get("storage-type", "yml");
+        return $this->config->get("database");
     }
 }

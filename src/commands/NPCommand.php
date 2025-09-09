@@ -4,19 +4,24 @@ namespace MohamadRZ\NovaPerms\commands;
 
 use CortexPE\Commando\BaseCommand;
 use CortexPE\Commando\BaseSubCommand;
+use MohamadRZ\NovaPerms\commands\group\CreateGroup;
+use MohamadRZ\NovaPerms\commands\group\DeleteGroup;
+use MohamadRZ\NovaPerms\commands\group\GroupCommand;
 use MohamadRZ\NovaPerms\commands\misc\HelpCommand;
 use MohamadRZ\NovaPerms\model\Group;
 use MohamadRZ\NovaPerms\model\GroupManager;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
-use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
-use pocketmine\command\utils\CommandException;
+use pocketmine\plugin\Plugin;
 
 final class NPCommand extends BaseCommand
 {
 
+    public Plugin $plugin;
+
     public function __construct(NovaPermsPlugin $plugin) {
         parent::__construct($plugin, "novaperms", "Manage permissions");
+        $this->plugin = $plugin;
         $this->setAliases(["np", "perm", "perms", "permission", "permissions"]);
         $this->setPermission("novaperms.use");
         $this->setPermissionMessage("§cYou don't have permission to us this command!");
@@ -27,7 +32,9 @@ final class NPCommand extends BaseCommand
      */
     protected function prepare(): void
     {
-        $this->registerSubCommand(new HelpCommand("help", "help command"));
+        $this->registerSubCommand(new HelpCommand($this->plugin ,"help", "help command"));
+        $this->registerSubCommand(new CreateGroup($this->plugin ,"creategroup", "Create a new group"));
+        $this->registerSubCommand(new DeleteGroup($this->plugin ,"deletegroup", "Delete a group"));
     }
 
     /**
@@ -38,24 +45,28 @@ final class NPCommand extends BaseCommand
      */
     #[\Override]
     public function onRun(CommandSender $sender, string $aliasUsed, array $args): void {
+        $noPermission = function() use ($sender) {
+            $sender->sendMessage("§cYou don't have permission to use this command!");
+        };
+
         $groups = NovaPermsPlugin::getGroupManager()->getAllGroups();
         $plugin = NovaPermsPlugin::getInstance();
         $pluginName = $plugin->getDescription()->getName();
         $version = $plugin->getDescription()->getVersion();
 
-        $noPermission = function() use ($sender) {
-            $sender->sendMessage("§cYou don't have permission to use this command!");
-        };
-
         if (count($groups) <= 1) {
-            /** @var Group $onlyGroup */
+            /** @var Group|null $onlyGroup */
             $onlyGroup = reset($groups);
 
-            $isDefaultNoPerms = (
-                $onlyGroup->getName() === GroupManager::DEFAULT_GROUP &&
-                count($onlyGroup->getOwnPermissionNodes()) === 0 &&
-                !$sender->hasPermission("novaperms.help")
-            );
+            if ($onlyGroup instanceof Group) {
+                $isDefaultNoPerms = (
+                    $onlyGroup->getName() === GroupManager::DEFAULT_GROUP &&
+                    count($onlyGroup->getOwnPermissionNodes()) === 0 &&
+                    !$sender->hasPermission("novaperms.help")
+                );
+            } else {
+                $isDefaultNoPerms = false;
+            }
 
             if ($isDefaultNoPerms) {
                 $sender->sendMessage(NovaPermsPlugin::PREFIX . " §2Running §b{$pluginName} v{$version}§2.");
@@ -77,11 +88,6 @@ final class NPCommand extends BaseCommand
 
             $sender->sendMessage(NovaPermsPlugin::PREFIX . " §2Running §b{$pluginName} v{$version}§2.");
             $sender->sendMessage(NovaPermsPlugin::PREFIX . " §2Use §a/np help §3to view available commands.");
-            return;
-        }
-
-        if (!$sender->hasPermission("novaperms.help")) {
-            $noPermission();
             return;
         }
 

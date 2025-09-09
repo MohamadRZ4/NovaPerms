@@ -1,0 +1,43 @@
+########################################################################################
+#                                   Database Settings                                  #
+########################################################################################
+
+# ⚡ NovaPerms Database Configuration
+# This section controls how NovaPerms stores and loads all data: users, groups, permissions, etc.
+# You MUST configure this before using NovaPerms. Incorrect settings will prevent the plugin from loading.
+
+database:
+  # The type of database to use. Options:
+  #   sqlite - Single file database, perfect for small servers or testing.
+  #   mysql  - Networked database, better for large servers or multi-server setups.
+  type: sqlite
+
+  # ==================== SQLite Settings ====================
+  # Only used if type: sqlite
+  sqlite:
+    # Path to the SQLite database file relative to the server root.
+    # The plugin will create the file if it does not exist.
+    file: novaperms.db
+
+  # ==================== MySQL Settings =====================
+  # Only used if type: mysql
+  mysql:
+    # The host of your MySQL server (IP or domain)
+    host: localhost
+    # The port of your MySQL server
+    port: 3306
+    # Username to connect to MySQL
+    username: root
+    # Password for the MySQL user
+    password: ""
+    # Database name where NovaPerms tables will be created
+    database: novaperms
+    # Optional: charset (usually utf8mb4 is best)
+    charset: utf8mb4
+
+# Notes:
+# - If you choose SQLite, ensure the 'plugins/NovaPerms/' folder is writable.
+# - If you choose MySQL, ensure the database exists and the user has proper permissions.
+# - Changing the database type after initial setup may require data migration.
+# - Incorrect database settings will prevent NovaPerms from initializing correctly.
+########################################################################################

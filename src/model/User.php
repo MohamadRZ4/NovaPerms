@@ -26,7 +26,6 @@ class User extends PermissionHolder
     public function __construct(string $playerName)
     {
         $this->name = $playerName;
-        $this->getParent();
     }
 
     public function getParent(): ?Player

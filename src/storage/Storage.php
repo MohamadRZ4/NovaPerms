@@ -3,107 +3,211 @@
 namespace MohamadRZ\NovaPerms\storage;
 
 use MohamadRZ\NovaPerms\model\Group;
+use MohamadRZ\NovaPerms\model\GroupManager;
+use MohamadRZ\NovaPerms\model\PermissionHolder;
 use MohamadRZ\NovaPerms\model\User;
+use MohamadRZ\NovaPerms\node\serializers\NodeDeserializer;
+use MohamadRZ\NovaPerms\node\serializers\NodeSerializer;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
-use MohamadRZ\NovaPerms\storage\file\YmlStorage;
+use pocketmine\promise\Promise;
+use pocketmine\promise\PromiseResolver;
+use poggit\libasynql\DataConnector;
+use poggit\libasynql\libasynql;
+use poggit\libasynql\SqlError;
 
-class Storage
+class Storage implements IStorage
 {
-    private IStorage $storage;
-
+    protected DataConnector $database;
+    protected string $name;
     public function __construct()
     {
-        $this->init();
+        $plugin = NovaPermsPlugin::getInstance();
+        $config = $plugin->getConfigManager()->getDatabase();
+
+        $this->name = strtolower($config["type"] ?? "sqlite");
+        $prettyNames = [
+            "sqlite" => "SQLite",
+            "mysql"  => "MySQL"
+        ];
+
+        $displayName = $prettyNames[strtolower($this->name)] ?? ucfirst($this->name);
+
+        NovaPermsPlugin::getInstance()->getLogger()->info(
+            "Loading storage provider... [".$displayName."]"
+        );
+
+        $this->database = libasynql::create($plugin, $config, [
+            "sqlite" => "schema/sqlite.sql",
+            "mysql"  => "schema/mysql.sql"
+        ]);
+
+        $this->database->executeGeneric("init.users");
+        $this->database->executeGeneric("init.groups");
     }
 
-    /**
-     * @return void
-     */
-    public function init(): void
+    public function unload(): void
     {
-        $type = NovaPermsPlugin::getConfigManager()->getStorageType();
-        switch ($type) {
-            case StorageTypes::SQLite:
-                $this->storage = new SQLiteStorage();
-                break;
-            case StorageTypes::MYSQL:
-                break;
-            default:
-                $this->storage = new YmlStorage();
-                break;
+        if (isset($this->database)) {
+            $this->database->close();
         }
-        NovaPermsPlugin::getInstance()->getLogger()->info("Loading storage provider... [".$this->storage->getName()."]");
-        $this->storage->init();
     }
 
-    /**
-     * @param string $username
-     * @return User|null
-     */
-    public function loadUser(string $username): ?User
+    public function getName(): string
     {
-        return $this->storage->loadUser($username);
+        return $this->name;
+    }
+
+    public function loadUser(string $username): Promise {
+        $resolver = new PromiseResolver();
+        $user = NovaPermsPlugin::getUserManager()->getOrMake($username);
+
+        $this->database->executeSelect(
+            "data.users.get",
+            ["username" => $username],
+            function (array $rows) use ($user, $resolver) {
+                $this->setNodes($rows, $user, $resolver);
+                $user->updatePermissions();
+            },
+            fn() => $resolver->reject()
+        );
+
+        return $resolver->getPromise();
+    }
+
+    public function loadGroup(string $groupName): Promise
+    {
+        $resolver = new PromiseResolver();
+        $this->database->executeSelect("data.groups.get", ["name" => $groupName], function(array $rows) use ($groupName, $resolver) {
+            $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
+            $this->setNodes($rows, $group, $resolver);
+        }, fn() => $resolver->reject());
+        return $resolver->getPromise();
+    }
+
+    public function saveUser(User $user): Promise
+    {
+        $resolver = new PromiseResolver();
+        $serialized = json_encode($this->writeNodes($user->getOwnPermissionNodes()));
+        $this->database->executeChange("data.users.set", [
+            "username"    => $user->getName(),
+            "permissions" => $serialized
+        ], fn() => $resolver->resolve(true), fn() => $resolver->reject());
+        return $resolver->getPromise();
+    }
+
+    public function saveGroup(Group $group): Promise
+    {
+        $resolver = new PromiseResolver();
+        $serialized = json_encode($this->writeNodes($group->getOwnPermissionNodes()));
+        $this->database->executeChange("data.groups.set", [
+            "name"        => $group->getName(),
+            "permissions" => $serialized
+        ], fn() => $resolver->resolve(true), fn() => $resolver->reject());
+        return $resolver->getPromise();
+    }
+
+    public function loadAllGroup(): Promise
+    {
+        $resolver = new PromiseResolver();
+        $this->database->executeSelect("data.groups.getAll", [], function(array $rows) use ($resolver) {
+            foreach ($rows as $row) {
+                $group = NovaPermsPlugin::getGroupManager()->getOrMake($row['name']);
+                $nodes = $this->readNodes(json_decode($row['permissions'], true));
+                $perm = [];
+                foreach ($nodes as $node) $perm[$node->getKey()] = $node;
+                $group->setPermissions($perm);
+                NovaPermsPlugin::getGroupManager()->registerGroup($group);
+            }
+            $resolver->resolve(true);
+        }, fn() => $resolver->reject());
+        return $resolver->getPromise();
+    }
+
+    public function saveAllGroup(): Promise
+    {
+        $resolver = new PromiseResolver();
+        $promises = [];
+        foreach (NovaPermsPlugin::getGroupManager()->getAllGroups() as $group) {
+            $promises[] = $this->saveGroup($group);
+        }
+        Promise::all($promises)->onCompletion(fn() => $resolver->resolve(true), fn() => $resolver->reject());
+        return $resolver->getPromise();
+    }
+
+
+    protected function writeNodes(?array $data): array
+    {
+        if (!is_array($data)) return NodeSerializer::serialize([]);
+        try {
+            return NodeSerializer::serialize($data);
+        } catch (\Exception $e) {
+            NovaPermsPlugin::getInstance()->getLogger()->error("Error serializing nodes: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    protected function readNodes(?array $rawData): array
+    {
+        if (!is_array($rawData)) return [];
+        try {
+            return NodeDeserializer::deserialize($rawData);
+        } catch (\Exception $e) {
+            NovaPermsPlugin::getInstance()->getLogger()->error("Error deserializing nodes: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**
      * @param array $usernames
-     * @return array
+     * @return Promise
      */
-    public function loadUsers(array $usernames): array
+    #[\Override]
+    public function loadUsers(array $usernames): Promise
     {
-        return $this->storage->loadUsers($usernames);
-    }
-
-    /**
-     * @param User $user
-     * @return void
-     */
-    public function saveUser(User $user): void
-    {
-        $this->storage->saveUser($user);
-    }
-
-    /**
-     * @param string $groupName
-     * @return Group|null
-     */
-    public function loadGroup(string $groupName): ?Group
-    {
-        return $this->storage->loadGroup($groupName);
+        $resolver = new PromiseResolver();
+        $promises = [];
+        foreach ($usernames as $username) {
+            $promises[] = $this->loadUser($username);
+        }
+        Promise::all($promises)->onCompletion(
+            fn($users) => $resolver->resolve($users),
+            fn() => $resolver->reject()
+        );
+        return $resolver->getPromise();
     }
 
     /**
      * @param string $groupName
      * @param array $nodes
-     * @return void
+     * @return Promise
      */
-    public function createAndLoadGroup(string $groupName, array $nodes = []): void
+    #[\Override]
+    public function createAndLoadGroup(string $groupName, array $nodes = []): Promise
     {
-        $this->storage->createAndLoadGroup($groupName, $nodes);
+        $resolver = new PromiseResolver();
+        $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
+        $group->setPermissions($nodes);
+        $this->saveGroup($group)->onCompletion(
+            fn() => $resolver->resolve($group),
+            fn() => $resolver->reject()
+        );
+        return $resolver->getPromise();
     }
 
     /**
-     * @param Group $group
+     * @param array $rows
+     * @param PermissionHolder $holder
+     * @param PromiseResolver $resolver
      * @return void
      */
-    public function saveGroup(Group $group): void
+    private function setNodes(array $rows, PermissionHolder $holder, PromiseResolver $resolver): void
     {
-        $this->storage->saveGroup($group);
-    }
-
-    /**
-     * @return void
-     */
-    public function loadAllGroup(): void
-    {
-        $this->storage->loadAllGroup();
-    }
-
-    /**
-     * @return void
-     */
-    public function saveAllGroup(): void
-    {
-        $this->storage->saveAllGroup();
+        if (count($rows) > 0) {
+            $nodes = $this->readNodes(json_decode($rows[0]['permissions'], true));
+            $perm = [];
+            foreach ($nodes as $node) $perm[$node->getKey()] = $node;
+            $holder->setPermissions($perm);
+        }
+        $resolver->resolve($holder);
     }
 }

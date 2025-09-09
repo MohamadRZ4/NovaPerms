@@ -63,7 +63,7 @@ class NovaPermsPlugin extends PluginBase {
         self::$configManager = new ConfigManager($this, $this->getDataFolder());
         self::$storage = new Storage($this);
         self::$groupManager = new GroupManager();
-        self::$groupManager->loadDefaults();
+        self::$groupManager->init();
         self::$userManager = new UserManager();
 
         $this->getServer()->getPluginManager()->registerEvents(new EventListener(), $this);
@@ -83,7 +83,6 @@ class NovaPermsPlugin extends PluginBase {
     {
         return self::$datePath;
     }
-
 
 
     public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool

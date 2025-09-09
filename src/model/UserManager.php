@@ -12,13 +12,13 @@ class UserManager
 
     public function getOrMake($name): User
     {
-        if ($this->getUser($name)) {
-            return $this->getUser($name);
-        } else {
-            $user = new User($name);
-            $user->addPermission(InheritanceNode::builder(GroupManager::DEFAULT_GROUP)->build());
-            return $user;
-        }
+        $name = strtolower($name);
+        return $this->users[$name] ?? $this->users[$name] = new User($name);
+    }
+
+    public function getUser($name): ?User
+    {
+        return $this->users[strtolower($name)] ?? null;
     }
 
     public function inNonDefaultUser(User $user): bool
@@ -36,37 +36,23 @@ class UserManager
         return true;
     }
 
-    public function loadUser(string $playerName): User
+    public function saveUser(string|User $user): void
     {
-        $user = NovaPermsPlugin::getStorage()->loadUser($playerName);
-        $this->users[strtolower($user->getName())] = $user;
-        return $user;
+        $user = $user instanceof User
+            ? $user
+            : $this->getUser(strtolower($user));
+
+        NovaPermsPlugin::getStorage()->saveUser($user);
     }
 
-    public function saveUser(string|User $player): void
+    public function cleanupUser(string|User $user): void
     {
-        $name = $player instanceof User
-            ? $player->getName()
-            : $player;
-
-        NovaPermsPlugin::getStorage()->saveUser($name);
-    }
-
-    public function cleanupUser(User $user): void
-    {
-        if (isset($this->users[strtolower($user->getName())])) {
-            unset($this->users[strtolower($user->getName())]);
+        $user = $user instanceof User
+            ? $user->getName()
+            : strtolower($user);
+        if (isset($this->users[strtolower($user)])) {
+            unset($this->users[strtolower($user)]);
         }
-    }
-
-    public function getUser(string $name): ?User
-    {
-        return $this->users[strtolower($name)] ?? null;
-    }
-
-    public function removeUser(string $name): void
-    {
-        unset($this->users[strtolower($name)]);
     }
 
     public function getAllUsers(): array
