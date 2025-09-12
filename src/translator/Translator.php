@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MohamadRZ\NovaPerms;
+namespace MohamadRZ\NovaPerms\translator;
 
 use DirectoryIterator;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
-use pocketmine\utils\Config;
 use RuntimeException;
 
 final class Translator
@@ -21,6 +21,7 @@ final class Translator
 
     /**
      * Load language files and prepare locale maps.
+     * Now supports .ini files (with or without sections).
      */
     public static function initialize(NovaPermsPlugin $plugin): void
     {
@@ -31,10 +32,15 @@ final class Translator
             throw new RuntimeException("Could not create lang directory at: $languagesPath");
         }
 
-        $plugin->saveResource(self::LANG_DIR . "/en_us.yml");
+        $plugin->saveResource(self::LANG_DIR . "/en_us.ini");
 
         foreach (new DirectoryIterator($languagesPath) as $file) {
-            if (!$file->isFile() || $file->getExtension() !== "yml") {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $ext = strtolower($file->getExtension());
+            if ($ext !== "ini") {
                 continue;
             }
 
@@ -44,9 +50,12 @@ final class Translator
                 continue;
             }
 
-            $config = new Config($path, Config::YAML);
-            $all = $config->getAll();
-            self::$messagesByLocale[$locale] = self::flattenArray($all);
+            $parsed = @parse_ini_file($path, true, INI_SCANNER_TYPED);
+            if ($parsed === false) {
+                continue;
+            }
+
+            self::$messagesByLocale[$locale] = self::flattenArray($parsed);
         }
 
         $configuredLocale = (string)$plugin->getConfig()->get("default_language", self::$fallbackLocale);

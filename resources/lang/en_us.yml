@@ -1,5 +1,0 @@
-perm:
-  perm: "salam {player} score {score}"
-  perm1: "salam {player} score {1}"
-  perm2: "salam {0} score {1}"
-  perm3: "salam {1} score {1}"

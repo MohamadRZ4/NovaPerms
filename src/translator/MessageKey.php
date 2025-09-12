@@ -1,6 +1,6 @@
 <?php
 
-namespace MohamadRZ\NovaPerms;
+namespace MohamadRZ\NovaPerms\translator;
 
 use pocketmine\command\CommandSender;
 

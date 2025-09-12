@@ -12,6 +12,7 @@ use MohamadRZ\NovaPerms\model\GroupManager;
 use MohamadRZ\NovaPerms\model\UserManager;
 use MohamadRZ\NovaPerms\node\Types\RegexPermission;
 use MohamadRZ\NovaPerms\storage\Storage;
+use MohamadRZ\NovaPerms\translator\Translator;
 use MohamadRZ\NovaPerms\utils\Duration;
 use MohamadRZ\NovaPerms\utils\ExecuteTimer;
 use pocketmine\command\Command;
