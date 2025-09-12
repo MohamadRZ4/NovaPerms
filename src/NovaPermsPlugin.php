@@ -43,6 +43,7 @@ class NovaPermsPlugin extends PluginBase {
     {
         $timer = new ExecuteTimer();
         parent::onEnable();
+        Translator::initialize($this);
         $version = $this->getDescription()->getVersion();
         $softWareName = $this->getServer()->getName();
         $softVersion = $this->getServer()->getVersion();

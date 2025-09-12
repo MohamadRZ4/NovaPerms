@@ -1,3 +1,7 @@
+# The default language for new players and anyone who doesn't have a specific language set.
+# (Examples: "en_us", "fa_ir", "de_de")
+default_language: "en_us"
+
 ########################################################################################
 #                                   Database Settings                                  #
 ########################################################################################
