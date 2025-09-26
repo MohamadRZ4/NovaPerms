@@ -11,6 +11,7 @@ use MohamadRZ\NovaPerms\model\GroupManager;
 use MohamadRZ\NovaPerms\model\UserManager;
 use MohamadRZ\NovaPerms\node\Types\RegexPermission;
 use MohamadRZ\NovaPerms\storage\Storage;
+use MohamadRZ\NovaPerms\translator\Translator;
 use MohamadRZ\NovaPerms\utils\Duration;
 use MohamadRZ\NovaPerms\utils\ExecuteTimer;
 use pocketmine\command\Command;
@@ -39,6 +40,7 @@ class NovaPermsPlugin extends PluginBase {
     {
         $timer = new ExecuteTimer();
         parent::onEnable();
+        Translator::initialize($this);
         $version = $this->getDescription()->getVersion();
         $softWareName = $this->getServer()->getName();
         $softVersion = $this->getServer()->getVersion();
