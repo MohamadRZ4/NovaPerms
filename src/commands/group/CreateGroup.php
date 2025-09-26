@@ -2,36 +2,40 @@
 
 namespace MohamadRZ\NovaPerms\commands\group;
 
-use CortexPE\Commando\args\BaseArgument;
-use CortexPE\Commando\args\IntegerArgument;
-use CortexPE\Commando\args\RawStringArgument;
-use CortexPE\Commando\BaseSubCommand;
-use CortexPE\Commando\exception\ArgumentOrderException;
+use MohamadRZ\CommandLib\BaseCommand;
+use MohamadRZ\CommandLib\IntegerArgument;
+use MohamadRZ\CommandLib\StringArgument;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use MohamadRZ\NovaPerms\storage\DataConstraints;
 use pocketmine\command\CommandSender;
 use pocketmine\lang\Translatable;
 
-class CreateGroup extends BaseSubCommand
+class CreateGroup extends BaseCommand
 {
 
-    /**
-     * @return void
-     * @throws ArgumentOrderException
-     */
-    protected function prepare(): void {
-        $this->registerArgument(0, new RawStringArgument("name"));
-        $this->registerArgument(1, new IntegerArgument("weight", true));
-        $this->registerArgument(2, new RawStringArgument("displayname", true));
+    public function __construct(string $name, Translatable|string $description = "", Translatable|string|null $usageMessage = null, array $aliases = [])
+    {
+        $this->setPermission("novaperms.use");
+        parent::__construct($name, $description, $usageMessage, $aliases);
     }
 
     /**
-     * @param CommandSender $sender
-     * @param string $aliasUsed
-     * @param array $args
      * @return void
      */
-    #[\Override] public function onRun(CommandSender $sender, string $aliasUsed, array $args): void
+    protected function prepare(): void {
+    }
+
+    /**
+     * @return void
+     */
+    #[\Override] public function setup(): void
+    {
+        $this->addArgument(new StringArgument("name"));
+        $this->addArgument(new IntegerArgument("weight", true));
+        $this->addArgument(new StringArgument("displayname", true));
+    }
+
+    protected function onRun(CommandSender $sender, array $args, string $rootLabel): void
     {
         $groupManager = NovaPermsPlugin::getGroupManager();
 
@@ -52,10 +56,9 @@ class CreateGroup extends BaseSubCommand
         } else {
             $sender->sendMessage(NovaPermsPlugin::PREFIX . " §4$name §calready exist!.");
         }
-
     }
 
-    protected function sendUsage(): void
+/*    protected function sendUsage(): void
     {
         $descriptions = [
             0 => "The name of the group",
@@ -68,7 +71,7 @@ class CreateGroup extends BaseSubCommand
 
         foreach($this->getArgumentList() as $index => $argSet) {
             foreach($argSet as $argument) {
-                /** @var BaseArgument $argument */
+                * @var BaseArgument $argument
                 $desc = $descriptions[$index] ?? "No description";
                 $brackets = $argument->isOptional() ? ["[", "]"] : ["<", ">"];
                 $usage .= NovaPermsPlugin::PREFIX." §b- §8{$brackets[0]}§7{$argument->getName()}§8{$brackets[1]} §3-> §7{$desc}\n";
@@ -90,7 +93,7 @@ class CreateGroup extends BaseSubCommand
 
         foreach($this->getArgumentList() as $index => $argSet) {
             foreach($argSet as $argument) {
-                /** @var BaseArgument $argument */
+                * @var BaseArgument $argument
                 $desc = $descriptions[$index] ?? "No description";
                 $brackets = $argument->isOptional() ? ["[", "]"] : ["<", ">"];
                 $usage .= NovaPermsPlugin::PREFIX." §b- §8{$brackets[0]}§7{$argument->getName()}§8{$brackets[1]} §3-> §7{$desc}\n";
@@ -98,5 +101,5 @@ class CreateGroup extends BaseSubCommand
         }
 
         $this->currentSender->sendMessage($usage);
-    }
+    }*/
 }

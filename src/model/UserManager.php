@@ -50,8 +50,8 @@ class UserManager
         $user = $user instanceof User
             ? $user->getName()
             : strtolower($user);
-        if (isset($this->users[strtolower($user)])) {
-            unset($this->users[strtolower($user)]);
+        if (isset($this->users[$user])) {
+            unset($this->users[$user]);
         }
     }
 

@@ -100,4 +100,12 @@ abstract class PermissionHolder
             }
         }
     }
+
+    /**
+     * @return InheritanceNode[]
+     */
+    public function getInheritances(): array
+    {
+        return array_values($this->inheritances);
+    }
 }

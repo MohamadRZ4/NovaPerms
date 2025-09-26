@@ -2,11 +2,11 @@
 
 namespace MohamadRZ\NovaPerms;
 
-use MohamadRZ\NovaPerms\model\User;
 use pocketmine\event\Listener;
-use pocketmine\event\player\PlayerLoginEvent;
 use pocketmine\event\player\PlayerPreLoginEvent;
 use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\server\DataPacketSendEvent;
+use pocketmine\network\mcpe\protocol\AvailableCommandsPacket;
 
 class EventListener implements Listener
 {
