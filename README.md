@@ -3,14 +3,18 @@
 </p>
 
 <h1 align="center">NovaPerms</h1>
+
 <p align="center">
   Lightweight and modular rank system for PocketMine-MP.
 </p>
 
 ---
+> ⚠️ **Project Status: Paused**  
+> This project is currently **on hold** and will be restarted later with a **cleaner, fully re-written infrastructure**.  
+> Please **do not fork or continue development** on this version — the new iteration will be published once it’s ready.
 
-⚠️ **NOT READY FOR PRODUCTION!**  
-This plugin is under heavy development and not suitable for use in real servers yet.
+> ⚠️ **NOT READY FOR PRODUCTION!**  
+> This plugin is under heavy development and not suitable for use in real servers yet.
 
 ---
 
