@@ -2,6 +2,7 @@
 
 namespace MohamadRZ\NovaPerms\node\Types;
 
+use MohamadRZ\NovaPerms\permission\context\ContextSet;
 use MohamadRZ\NovaPerms\context\BaseContextSet;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
@@ -14,10 +15,11 @@ class MetaNode extends AbstractNode
     public function __construct(
         string $metaKey,
         string $metaValue,
+        ContextSet $contextSet,
         bool $value = true,
         int $expiry = -1
     ) {
-        parent::__construct("meta.{$metaKey}.{$metaValue}", $value, $expiry);
+        parent::__construct("meta.{$metaKey}.{$metaValue}", $contextSet, $value, $expiry);
         $this->metaKey = $metaKey;
         $this->metaValue = $metaValue;
     }
@@ -36,7 +38,8 @@ class MetaNode extends AbstractNode
     {
         return (new MetaNodeBuilder($this->metaKey, $this->metaValue))
             ->value($this->value)
-            ->expiry($this->expiry);
+            ->expiry($this->expiry)
+            ->contextSet($this->contextSet);
     }
 }
 
@@ -48,6 +51,7 @@ class MetaNodeBuilder extends AbstractNodeBuilder
     {
         $this->metaKey = $metaKey;
         $this->metaValue = $metaValue;
+        parent::__construct();
     }
     public function metaKey(string $metaKey): self { $this->metaKey = $metaKey; return $this; }
     public function metaValue(string $metaValue): self { $this->metaValue = $metaValue; return $this; }
@@ -57,6 +61,7 @@ class MetaNodeBuilder extends AbstractNodeBuilder
         return new MetaNode(
             $this->metaKey,
             $this->metaValue,
+            $this->contextSet,
             $this->value,
             $this->expiry
         );

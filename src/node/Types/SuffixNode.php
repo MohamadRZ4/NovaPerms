@@ -2,7 +2,7 @@
 
 namespace MohamadRZ\NovaPerms\node\Types;
 
-use MohamadRZ\NovaPerms\context\BaseContextSet;
+use MohamadRZ\NovaPerms\context\ContextSet;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
 
@@ -14,11 +14,11 @@ class SuffixNode extends AbstractNode
     public function __construct(
         string $suffix,
         int $priority,
+        ContextSet $contextSet,
         bool $value = true,
-        int $expiry = -1,
-        ?BaseContextSet $context = null
+        int $expiry = -1
     ) {
-        parent::__construct("suffix.{$priority}.{$suffix}", $value, $expiry, $context);
+        parent::__construct("suffix.{$priority}.{$suffix}", $contextSet, $value, $expiry);
         $this->suffix = $suffix;
         $this->priority = $priority;
     }
@@ -35,9 +35,10 @@ class SuffixNode extends AbstractNode
     }
     public function toBuilder(): SuffixNodeBuilder
     {
-        return new SuffixNodeBuilder($this->suffix, $this->priority)
+        return (new SuffixNodeBuilder($this->suffix, $this->priority))
             ->value($this->value)
-            ->expiry($this->expiry);
+            ->expiry($this->expiry)
+            ->contextSet($this->contextSet);
     }
 }
 
@@ -49,6 +50,7 @@ class SuffixNodeBuilder extends AbstractNodeBuilder
     {
         $this->suffix = $suffix;
         $this->priority = $priority;
+        parent::__construct();
     }
     public function suffix(string $suffix): self { $this->suffix = $suffix; return $this; }
     public function priority(int $priority): self { $this->priority = $priority; return $this; }
@@ -58,6 +60,7 @@ class SuffixNodeBuilder extends AbstractNodeBuilder
         return new SuffixNode(
             $this->suffix,
             $this->priority,
+            $this->contextSet,
             $this->value,
             $this->expiry
         );

@@ -2,6 +2,7 @@
 
 namespace MohamadRZ\NovaPerms\node\Types;
 
+use MohamadRZ\NovaPerms\permission\context\ContextSet;
 use MohamadRZ\NovaPerms\context\BaseContextSet;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
@@ -14,10 +15,11 @@ class PrefixNode extends AbstractNode
     public function __construct(
         string $prefix,
         int $priority,
+        ContextSet $contextSet,
         bool $value = true,
         int $expiry = -1
     ) {
-        parent::__construct("prefix.{$priority}.{$prefix}", $value, $expiry);
+        parent::__construct("prefix.{$priority}.{$prefix}", $contextSet, $value, $expiry);
         $this->prefix = $prefix;
         $this->priority = $priority;
     }
@@ -34,9 +36,10 @@ class PrefixNode extends AbstractNode
     }
     public function toBuilder(): PrefixNodeBuilder
     {
-        return new PrefixNodeBuilder($this->prefix, $this->priority)
+        return (new PrefixNodeBuilder($this->prefix, $this->priority))
             ->value($this->value)
-            ->expiry($this->expiry);
+            ->expiry($this->expiry)
+            ->contextSet($this->contextSet);
     }
 }
 
@@ -48,6 +51,7 @@ class PrefixNodeBuilder extends AbstractNodeBuilder
     {
         $this->prefix = $prefix;
         $this->priority = $priority;
+        parent::__construct();
     }
     public function prefix(string $prefix): self { $this->prefix = $prefix; return $this; }
     public function priority(int $priority): self { $this->priority = $priority; return $this; }
@@ -57,6 +61,7 @@ class PrefixNodeBuilder extends AbstractNodeBuilder
         return new PrefixNode(
             $this->prefix,
             $this->priority,
+            $this->contextSet,
             $this->value,
             $this->expiry
         );

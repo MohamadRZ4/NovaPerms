@@ -4,6 +4,8 @@ namespace MohamadRZ\NovaPerms\model;
 
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use pocketmine\promise\Promise;
+use pocketmine\Server;
 
 class UserManager
 {
@@ -16,10 +18,44 @@ class UserManager
         return $this->users[$name] ?? $this->users[$name] = new User($name);
     }
 
+    public function loadUser(string $name): Promise
+    {
+        $name = strtolower($name);
+        return NovaPermsPlugin::getStorage()->loadUser($name);
+    }
+
     public function getUser($name): ?User
     {
         return $this->users[strtolower($name)] ?? null;
     }
+
+    public function modifyUser(string $name, callable $consumer): void
+    {
+        $name = strtolower($name);
+
+        if (isset($this->users[$name])) {
+            $user = $this->users[$name];
+            $consumer($user);
+            $this->saveUser($user);
+            return;
+        }
+
+        NovaPermsPlugin::getStorage()->loadUser($name)->onCompletion(
+            function (User $user) use ($name, $consumer) {
+                $this->users[$name] = $user;
+                $user->setIsInitialized(true);
+
+                $consumer($user);
+                $this->saveUser($user);
+            },
+            function () use ($name) {
+                Server::getInstance()->getLogger()->warning(
+                    "Failed to load user {$name} for modifyUser"
+                );
+            }
+        );
+    }
+
 
     public function inNonDefaultUser(User $user): bool
     {
@@ -36,13 +72,13 @@ class UserManager
         return true;
     }
 
-    public function saveUser(string|User $user): void
+    public function saveUser(string|User $user): Promise
     {
         $user = $user instanceof User
             ? $user
             : $this->getUser(strtolower($user));
 
-        NovaPermsPlugin::getStorage()->saveUser($user);
+        return NovaPermsPlugin::getStorage()->saveUser($user);
     }
 
     public function cleanupUser(string|User $user): void

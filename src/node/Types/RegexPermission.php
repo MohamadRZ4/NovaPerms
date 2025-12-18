@@ -26,7 +26,8 @@ class RegexPermission extends AbstractNode
     {
         return (new RegexNodeBuilder($this->key))
             ->value($this->value)
-            ->expiry($this->expiry);
+            ->expiry($this->expiry)
+            ->contextSet($this->contextSet);
     }
 }
 
@@ -37,6 +38,7 @@ class RegexNodeBuilder extends AbstractNodeBuilder
     public function __construct(string $pattern)
     {
         $this->pattern = $pattern;
+        parent::__construct();
     }
 
     public function pattern(string $pattern): self
@@ -49,6 +51,7 @@ class RegexNodeBuilder extends AbstractNodeBuilder
     {
         return new RegexPermission(
             $this->pattern,
+            $this->contextSet,
             $this->value,
             $this->expiry
         );

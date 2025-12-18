@@ -15,10 +15,11 @@ class GroupManager {
 
     public function init()
     {
-        NovaPermsPlugin::getStorage()->loadAllGroup();
+/*        NovaPermsPlugin::getStorage()->loadAllGroup();
         if (!$this->getGroup(self::DEFAULT_GROUP)) {
             NovaPermsPlugin::getStorage()->createAndLoadGroup(self::DEFAULT_GROUP);
-        }
+        }*/
+        $this->createGroup(self::DEFAULT_GROUP);
     }
 
     public function getOrMake($name): Group
@@ -32,10 +33,9 @@ class GroupManager {
         return $this->groups[strtolower($name)] ?? null;
     }
 
-    public function createGroup(string $name, int $weight = -1, string $displayName = ""): bool
+    public function createGroup(string $name, int $weight = -1, ?string $displayName = null): bool
     {
         $name = trim($name);
-        $displayName = trim($displayName);
 
         foreach ($this->getAllGroups() as $group) {
             if (strcasecmp($name, $group->getName()) === 0) {
@@ -50,7 +50,8 @@ class GroupManager {
             $group->addPermission(WeightNode::builder($weight)->build());
         }
 
-        if ($displayName !== "") {
+        if ($displayName !== null) {
+            $displayName = trim($displayName);
             $group->addPermission(DisplayNameNode::builder($displayName)->build());
         }
 
@@ -59,12 +60,21 @@ class GroupManager {
         return true;
     }
 
+    public function deleteGroup(Group|string $group): void
+    {
+        $group = $group instanceof Group
+            ? $group->getName()
+            : strtolower($group);
+        if (!isset($this->groups[$group])) return;
+        NovaPermsPlugin::getStorage()->deleteGroup($group);
+    }
+
     public function registerGroup(Group $group): void
     {
         $this->groups[strtolower($group->getName())] = $group;
     }
 
-    public function removeGroup(string $name): void
+    public function cleanupGroup(string $name): void
     {
         unset($this->groups[strtolower($name)]);
     }
@@ -75,8 +85,23 @@ class GroupManager {
         return array_values($this->groups);
     }
 
-    public function clearGroups(): void
+    public function processGroupDeletion(string $groupName): void
     {
-        $this->groups = [];
+        $groupName = strtolower($groupName);
+
+        $this->cleanupGroup($groupName);
+
+        foreach ($this->getAllGroups() as $group) {
+            $changed = false;
+            foreach ($group->getInheritances() as $node) {
+                if (strtolower($node->getGroup()) === $groupName) {
+                    $group->removePermission($node);
+                    $changed = true;
+                }
+            }
+            if ($changed) {
+                NovaPermsPlugin::getStorage()->saveGroup($group);
+            }
+        }
     }
 }

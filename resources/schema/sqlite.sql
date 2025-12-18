@@ -29,6 +29,12 @@
 			-- # :username string
 			SELECT * FROM Users WHERE username = :username;
 		-- #}
+        -- #{ getOrCreate
+            -- # :username string
+            -- # :permissions string "[]"
+            INSERT OR IGNORE INTO Users(username, permissions) VALUES (:username, :permissions);
+            SELECT * FROM Users WHERE username = :username;
+        -- #}
 		-- #{ set
 			-- # :username string
 			-- # :permissions string "[]"

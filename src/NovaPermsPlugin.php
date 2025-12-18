@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace MohamadRZ\NovaPerms;
 
-use MohamadRZ\CommandLib\CommandPacketListener;
-use MohamadRZ\NovaPerms\commands\NPCommand;
 use MohamadRZ\NovaPerms\config\ConfigManager;
+use MohamadRZ\NovaPerms\context\calculator\GameModeCalculator;
+use MohamadRZ\NovaPerms\context\ContextManager;
 use MohamadRZ\NovaPerms\model\GroupManager;
 use MohamadRZ\NovaPerms\model\UserManager;
+use MohamadRZ\NovaPerms\node\resolver\NodePermissionResolver;
 use MohamadRZ\NovaPerms\node\Types\RegexPermission;
 use MohamadRZ\NovaPerms\storage\Storage;
 use MohamadRZ\NovaPerms\translator\Translator;
@@ -16,6 +17,8 @@ use MohamadRZ\NovaPerms\utils\Duration;
 use MohamadRZ\NovaPerms\utils\ExecuteTimer;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\permission\Permission;
+use pocketmine\permission\PermissionManager;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\TextFormat as TF;
@@ -29,6 +32,8 @@ class NovaPermsPlugin extends PluginBase {
     private static Storage $storage;
     private static GroupManager $groupManager;
     private static UserManager $userManager;
+    private static ContextManager $contextManager;
+    private static array $allKnownPermissions;
 
     protected function onLoad(): void
     {
@@ -52,21 +57,48 @@ class NovaPermsPlugin extends PluginBase {
         foreach ($logo as $line) {
             $this->getLogger()->info($line);
         }
-        if(!CommandPacketListener::isRegistered()) {
+/*        if(!CommandPacketListener::isRegistered()) {
             CommandPacketListener::register($this);
-        }
+        }*/
         self::$datePath = $this->getDataFolder();
         self::$configManager = new ConfigManager($this, $this->getDataFolder());
         self::$storage = new Storage($this);
+
+
+        self::$contextManager = new ContextManager();
+        self::$contextManager->registerCalculator(new GameModeCalculator());
+
+        $allKnownPermissions = [];
+        $pocketminePermissionManager = PermissionManager::getInstance()->getPermissions();
+        foreach ($pocketminePermissionManager as $permission) {
+            $allKnownPermissions[] = $permission->getName();
+        }
+        self::$allKnownPermissions = $allKnownPermissions;
         self::$groupManager = new GroupManager();
         self::$groupManager->init();
         self::$userManager = new UserManager();
 
         $this->getServer()->getPluginManager()->registerEvents(new EventListener(), $this);
         $this->getScheduler()->scheduleRepeatingTask(new UpdateTask(), 20 * 3);
-        $this->getServer()->getCommandMap()->register("novaperms", new NPCommand($this));
+        //$this->getServer()->getCommandMap()->register("novaperms", new NPCommand($this));
         $time = $timer->end();
         $this->getLogger()->info("Successfully enabled! (took " . $time . "ms)");
+    }
+
+    /**
+     * @return ContextManager
+     */
+    public static function getContextManager(): ContextManager
+    {
+        return self::$contextManager;
+    }
+
+    /**
+     * @return array
+     */
+    public static function getAllKnownPermissions(): array
+    {
+        return self::$allKnownPermissions;
     }
 
 

@@ -18,17 +18,20 @@ class PermissionNode extends AbstractNode
     {
         return (new PermissionNodeBuilder($this->key))
             ->value($this->value)
-            ->expiry($this->expiry);
+            ->expiry($this->expiry)
+            ->contextSet($this->contextSet);
     }
 }
 
 class PermissionNodeBuilder extends AbstractNodeBuilder
 {
-    public function __construct(string $key) { $this->key = $key; }
+    public function __construct(string $key) { $this->key = $key; parent::__construct(); }
+
     public function build(): PermissionNode
     {
         return new PermissionNode(
             $this->key,
+            $this->contextSet,
             $this->value,
             $this->expiry
         );

@@ -5,6 +5,7 @@ namespace MohamadRZ\NovaPerms\model;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\Types\PermissionNodeBuilder;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
+use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use pocketmine\permission\PermissionManager;
 
 abstract class PermissionHolder
@@ -14,14 +15,21 @@ abstract class PermissionHolder
     /** @var InheritanceNode[] */
     protected array $inheritances = [];
 
-    public function addPermission(AbstractNode|string $node, bool $value = true): void
+    public function addPermission(AbstractNode|string|array $nodes, bool $value = true): void
     {
-        if (!$node instanceof AbstractNode) {
-            $node = (new PermissionNodeBuilder($node))->value($value)->build();
-        } elseif ($node instanceof InheritanceNode) {
-            $this->addInheritance($node);
+        $nodesList = is_array($nodes) ? $nodes : [$nodes];
+
+        foreach ($nodesList as $node) {
+            if (!$node instanceof AbstractNode) {
+                $node = (new PermissionNodeBuilder($node))->value($value)->build();
+            }
+
+            if ($node instanceof InheritanceNode) {
+                $this->addInheritance($node);
+            }
+
+            $this->permissions[$node->getKey()] = $node;
         }
-        $this->permissions[$node->getKey()] = $node;
     }
 
     public function removePermission(AbstractNode|string $node): void
@@ -80,17 +88,6 @@ abstract class PermissionHolder
         $this->inheritances[] = $node;
     }
 
-    public function getAllKnownPermissions(): array
-    {
-        $list = [];
-
-        foreach (PermissionManager::getInstance()->getPermissions() as $perm) {
-            $list[] = $perm->getName();
-        }
-
-        return $list;
-    }
-
     private function removeInheritance(InheritanceNode $targetNode): void
     {
         foreach ($this->inheritances as $index => $node) {
@@ -107,5 +104,40 @@ abstract class PermissionHolder
     public function getInheritances(): array
     {
         return array_values($this->inheritances);
+    }
+
+    public static function updateUsersForGroup(string $changedGroupName): void
+    {
+        $allUsers = NovaPermsPlugin::getUserManager()->getAllUsers();
+
+        foreach ($allUsers as $user) {
+            if (self::userHasGroupInheritance($user, $changedGroupName)) {
+                $user->updatePermissions();
+            }
+        }
+    }
+
+    private static function userHasGroupInheritance(User $user, string $groupName): bool
+    {
+        $checked = [];
+        $stack = $user->getGroups();
+
+        while (!empty($stack)) {
+            $current = array_pop($stack);
+
+            if ($current === $groupName) return true;
+            if (isset($checked[$current])) continue;
+
+            $checked[$current] = true;
+
+            $group = NovaPermsPlugin::getGroupManager()->getGroup($current);
+            if ($group !== null) {
+                foreach ($group->getInheritances() as $inheritNode) {
+                    $stack[] = $inheritNode->getGroup();
+                }
+            }
+        }
+
+        return false;
     }
 }

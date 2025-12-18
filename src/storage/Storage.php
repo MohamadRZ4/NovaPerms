@@ -45,6 +45,14 @@ class Storage implements IStorage
         $this->database->executeGeneric("init.groups");
     }
 
+    /**
+     * @return DataConnector
+     */
+    public function getDatabase(): DataConnector
+    {
+        return $this->database;
+    }
+
     public function unload(): void
     {
         if (isset($this->database)) {
@@ -62,13 +70,17 @@ class Storage implements IStorage
         $user = NovaPermsPlugin::getUserManager()->getOrMake($username);
 
         $this->database->executeSelect(
-            "data.users.get",
-            ["username" => $username],
+            "data.users.getOrCreate",
+            [
+                "username" => $username,
+                "permissions" => json_encode([])
+            ],
             function (array $rows) use ($user, $resolver) {
                 $this->setNodes($rows, $user, $resolver);
-                $user->updatePermissions();
             },
-            fn() => $resolver->reject()
+            function() use ($resolver) {
+                $resolver->reject();
+            }
         );
 
         return $resolver->getPromise();
@@ -173,6 +185,29 @@ class Storage implements IStorage
             fn($users) => $resolver->resolve($users),
             fn() => $resolver->reject()
         );
+        return $resolver->getPromise();
+    }
+
+    /**
+     * @param string $groupName
+     * @return Promise
+     */
+    public function deleteGroup(string $groupName): Promise
+    {
+        $resolver = new PromiseResolver();
+
+        $this->database->executeGeneric("data.groups.delete", ["name" => $groupName], function() use ($groupName, $resolver) {
+
+            $group = NovaPermsPlugin::getGroupManager()->getGroup($groupName);
+            if ($group !== null) {
+                NovaPermsPlugin::getGroupManager()->processGroupDeletion($groupName);
+            }
+
+            $resolver->resolve(true);
+        }, function(SqlError $error) use ($resolver) {
+            $resolver->reject();
+        });
+
         return $resolver->getPromise();
     }
 
