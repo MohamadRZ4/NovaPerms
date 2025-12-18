@@ -2,8 +2,7 @@
 
 namespace MohamadRZ\NovaPerms\node\Types;
 
-use MohamadRZ\NovaPerms\permission\context\ContextSet;
-use MohamadRZ\NovaPerms\context\BaseContextSet;
+use MohamadRZ\NovaPerms\context\ContextSet;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
 
@@ -17,9 +16,10 @@ class PrefixNode extends AbstractNode
         int $priority,
         ContextSet $contextSet,
         bool $value = true,
-        int $expiry = -1
+        int $expiry = -1,
+        bool $negated = false
     ) {
-        parent::__construct("prefix.{$priority}.{$prefix}", $contextSet, $value, $expiry);
+        parent::__construct("prefix.{$priority}.{$prefix}", $contextSet, $value, $expiry, $negated);
         $this->prefix = $prefix;
         $this->priority = $priority;
     }
@@ -63,7 +63,8 @@ class PrefixNodeBuilder extends AbstractNodeBuilder
             $this->priority,
             $this->contextSet,
             $this->value,
-            $this->expiry
+            $this->expiry,
+            $this->negated
         );
     }
 }

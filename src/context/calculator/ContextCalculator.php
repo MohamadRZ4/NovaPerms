@@ -2,19 +2,12 @@
 
 namespace MohamadRZ\NovaPerms\context\calculator;
 
-use MohamadRZ\NovaPerms\context\ContextConsumer;
-use MohamadRZ\NovaPerms\context\ImmutableContextSet;
+use MohamadRZ\NovaPerms\context\ContextSet;
 
 interface ContextCalculator {
 
-    /**
-     * @param mixed $target
-     * @param ContextConsumer $consumer
-     */
-    public function calculate($target, ContextConsumer $consumer): void;
+    public function calculate(mixed $target, ContextSet $context): void;
 
-    /**
-     * @return ImmutableContextSet
-     */
-    public function estimatePotentialContexts(): ImmutableContextSet;
+    /** @return array<string, string[]> */
+    public function possible(): array;
 }

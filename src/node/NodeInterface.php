@@ -2,10 +2,10 @@
 
 namespace MohamadRZ\NovaPerms\node;
 
-use MohamadRZ\NovaPerms\context\BaseContextSet;
-
 interface NodeInterface
 {
+
+    public function isNegated(): bool;
     public function getKey(): string;
     public function getValue(): bool;
     public function getExpiry(): int;

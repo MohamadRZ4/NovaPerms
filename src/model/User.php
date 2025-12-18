@@ -90,12 +90,12 @@ class User extends PermissionHolder
     }
 
 
-    public function updatePermissions(): void {
+    public function updatePermissions(): void
+    {
         $this->runWhenInitialized(function() {
-            if ($this->getAttachment() === null) {
-                var_dump("Attachment not found, maybe player is offline?");
-                return;
-            }
+
+            $attachment = $this->getAttachment();
+            if ($attachment === null) return;
 
             $groupManager = NovaPermsPlugin::getGroupManager();
             $groupPermissionsMap = [];
@@ -103,27 +103,35 @@ class User extends PermissionHolder
 
             foreach ($groupManager->getAllGroups() as $group) {
                 $groupName = $group->getName();
-                $permissions = [];
-                $inheritance = [];
 
                 foreach ($group->getOwnPermissionNodes() as $node) {
                     if ($node instanceof InheritanceNode) {
-                        $inheritance[] = $node->getGroup();
+                        $groupInheritanceMap[$groupName][] = $node;
                     } else {
-                        $permissions[$node->getKey()] = $node->getValue();
+                        $groupPermissionsMap[$groupName][] = $node;
                     }
                 }
-
-                $groupPermissionsMap[$groupName] = $permissions;
-                $groupInheritanceMap[$groupName] = $inheritance;
             }
 
             $rootNodes = $this->getOwnPermissionNodes();
-            var_dump(6);
 
-            $task = new NodePermissionResolver($rootNodes, $groupPermissionsMap, $groupInheritanceMap, NovaPermsPlugin::getAllKnownPermissions(), NovaPermsPlugin::getContextManager()->getContext($this->getParent())->toArray(), $this->getName());
+            $resolver = new NodePermissionResolver(
+                $rootNodes,
+                $groupPermissionsMap,
+                $groupInheritanceMap,
+                NovaPermsPlugin::getAllKnownPermissions(),
+                $this->getName()
+            );
 
-            $task->resolve();
+            $resolver->resolve();
+        });
+    }
+
+    public function addPermission(AbstractNode|string|array $nodes, bool $value = true): void
+    {
+        $this->runWhenInitialized(function() use ($nodes, $value) {
+            parent::addPermission($nodes, $value);
+            $this->updatePermissions();
         });
     }
 
@@ -136,13 +144,5 @@ class User extends PermissionHolder
         }
 
         return $changed;
-    }
-
-    public function addPermission(AbstractNode|string|array $nodes, bool $value = true): void
-    {
-        $this->runWhenInitialized(function() use ($nodes, $value) {
-            parent::addPermission($nodes, $value);
-            $this->updatePermissions();
-        });
     }
 }

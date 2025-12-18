@@ -4,7 +4,6 @@ namespace MohamadRZ\NovaPerms\node;
 
 
 use MohamadRZ\NovaPerms\context\ContextSet;
-use MohamadRZ\NovaPerms\context\ImmutableContextSet;
 
 abstract class AbstractNode implements NodeInterface
 {
@@ -12,18 +11,24 @@ abstract class AbstractNode implements NodeInterface
     protected ContextSet $contextSet;
     protected bool $value;
     protected int $expiry;
+    protected bool $negated = false;
 
     public function __construct(
         string $key,
         ?ContextSet $contextSet = null,
         bool $value = true,
         int $expiry = -1,
-    )
-    {
+        bool $negated = false
+    ){
         $this->key = $key;
-        $this->contextSet = $contextSet ?? new ImmutableContextSet();
+        $this->contextSet = $contextSet ?? new ContextSet();
         $this->value = $value;
         $this->expiry = $expiry;
+        $this->negated = $negated;
+    }
+
+    public function isNegated(): bool {
+        return $this->negated;
     }
 
     public function getKey(): string { return $this->key; }
@@ -33,7 +38,7 @@ abstract class AbstractNode implements NodeInterface
     /**
      * @return ContextSet
      */
-    public function getContextSet(): ContextSet
+    public function getContext(): ContextSet
     {
         return $this->contextSet;
     }

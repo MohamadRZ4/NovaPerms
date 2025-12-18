@@ -53,7 +53,8 @@ class RegexNodeBuilder extends AbstractNodeBuilder
             $this->pattern,
             $this->contextSet,
             $this->value,
-            $this->expiry
+            $this->expiry,
+            $this->negated
         );
     }
 }

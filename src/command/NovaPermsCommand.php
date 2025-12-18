@@ -3,21 +3,24 @@
 namespace MohamadRZ\NovaPerms\command;
 
 use MohamadRZ\NovaPerms\model\GroupManager;
-use MohamadRZ\NovaPerms\model\PermissionHolder;
+use MohamadRZ\NovaPerms\model\User;
+use MohamadRZ\NovaPerms\node\AbstractNode;
+use MohamadRZ\NovaPerms\node\serialize\NodeDeserializer;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use MohamadRZ\NovaPerms\utils\Duration;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
-use pocketmine\command\utils\CommandException;
-use pocketmine\lang\Translatable;
+use pocketmine\utils\TextFormat as TF;
 
 class NovaPermsCommand extends Command
 {
     public const PREFIX = "§7[§l§bN§3P§4§r§7]§r";
 
-    public function __construct(string $name, Translatable|string $description = "", Translatable|string|null $usageMessage = null, array $aliases = [])
+    public function __construct(string $name)
     {
         $this->setAliases(["np", "perms", "permission", "permissions"]);
-        parent::__construct($name, $description, $usageMessage, $aliases);
+        $this->setPermission("novaperms.use");
+        parent::__construct($name);
     }
 
     /**
@@ -93,8 +96,14 @@ class NovaPermsCommand extends Command
             $sender->sendMessage("enter Name");
             return;
         }
-        NovaPermsPlugin::getGroupManager()->deleteGroup($name);
-        $sender->sendMessage("successfully \"$name\" deleting.");
+        NovaPermsPlugin::getGroupManager()->deleteGroup($name)->onCompletion(
+            function () use ($sender, $name) {
+                $sender->sendMessage("successfully \"$name\" deleting.");
+            },
+            function () use ($sender, $name) {
+                $sender->sendMessage("Error group \"$name\" not found or not loaded");
+            }
+        );
     }
 
     public function userHandler(CommandSender $sender, array $args): void
@@ -106,17 +115,213 @@ class NovaPermsCommand extends Command
             $sender->sendMessage("error 1");
         }
 
-        $user = NovaPermsPlugin::getUserManager()->getUser($target);
-        if ($user)
-
         switch (strtolower($sub)) {
             case "permission":
+                $this->permissionForUsersHandler($sender, $args, $target);
                 break;
         }
     }
 
-    public function permissionHandler(CommandSender $sender, array $args, PermissionHolder $holder): void
+    public function groupHandler(CommandSender $sender, array $args): void
     {
+        $group = array_shift($args) ?? null;
+        $sub = array_shift($args) ?? null;
 
+        if ($sub === null || $group === null) {
+            $sender->sendMessage("error 2");
+        }
+
+        switch (strtolower($sub)) {
+            case "permission":
+                $this->permissionForGroupHandler($sender, $args, $group);
+                break;
+        }
+    }
+
+    public function permissionForUsersHandler(CommandSender $sender, array $args, string $target): void
+    {
+        $sub = array_shift($args) ?? null;
+
+        if ($sub === null) {
+            $sender->sendMessage("error 3");
+        }
+
+        switch (strtolower($sub)) {
+            case "info":
+                NovaPermsPlugin::getUserManager()->modifyUser($target, function (User $user) use ($sender) {
+                    $permissions = $user->getPermissions();
+
+                    $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+                    $sender->sendMessage(TF::YELLOW . " NovaPerms " . TF::GRAY . "User Info {$user->getName()
+                }");
+                    $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+
+                    if (empty($permissions)) {
+                        $sender->sendMessage(TF::GRAY . "player have no permissions assigned.");
+                    } else {
+                        foreach ($permissions as $key => $node) {
+                            $expiry = ($node->getExpiry() === -1)
+                                ? TF::GREEN . "never"
+                                : TF::RED . date("Y-m-d H:i:s", $node->getExpiry()) . TF::GRAY
+                                . " (" . Duration::betweenNowAnd($node->getExpiry())->format() . " left)";
+
+                            $sender->sendMessage(
+                                TF::AQUA . " - " . TF::WHITE . $key .
+                                TF::DARK_GRAY . " | " . TF::GREEN . ($node->getValue() ? "true" : "false") .
+                                TF::DARK_GRAY . " | " . TF::GRAY . "expires: " . $expiry
+                            );
+                        }
+                    }
+
+                    $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+                });
+                break;
+            case "set":
+                NovaPermsPlugin::getUserManager()->modifyUser($target, function (User $user) use ($sender, $args) {
+
+                    $nodeString = array_shift($args);
+                    if ($nodeString === null) {
+                        $sender->sendMessage("error 4");
+                        return;
+                    }
+
+                    $value = true;
+
+                    if (!empty($args) && in_array(strtolower($args[0]), ['true', 'false'], true)) {
+                        $value = strtolower(array_shift($args)) === 'true';
+                    }
+
+                    $user->addPermission($nodeString, $value);
+
+                    $sender->sendMessage("Permission '{$nodeString}' set to " . ($value ? "true" : "false"));
+                });
+                break;
+            case "unset":
+                NovaPermsPlugin::getUserManager()->modifyUser($target, function (User $user) use ($sender, $args) {
+
+                    $nodeString = array_shift($args);
+                    if ($nodeString === null) {
+                        $sender->sendMessage("error: No node specified.");
+                        return;
+                    }
+
+                    if ($user->removePermission($nodeString)) {
+                        $sender->sendMessage("Permission '{$nodeString}' unset successfully.");
+                    } else {
+                        $sender->sendMessage("Permission '{$nodeString}' not found or couldn't be removed.");
+                    }
+                });
+                break;
+            case "settemp":
+                NovaPermsPlugin::getUserManager()->modifyUser($target, function (User $user) use ($sender, $args) {
+
+                    $nodeString = array_shift($args);
+                    if ($nodeString === null) {
+                        $sender->sendMessage("§cError: No node specified.");
+                        return;
+                    }
+
+                    $value = true;
+                    if (!empty($args) && in_array(strtolower($args[0]), ['true', 'false'], true)) {
+                        $value = strtolower(array_shift($args)) === 'true';
+                    }
+
+                    $durationStr = array_shift($args);
+                    if ($durationStr === null) {
+                        $sender->sendMessage("§cError: No duration specified.");
+                        return;
+                    }
+                    $durationSeconds = Duration::fromString($durationStr)->getSeconds();
+
+                    $modifier = array_shift($args) ?? 'replace';
+                    if (!in_array($modifier, ['accumulate', 'replace', 'deny'], true)) $modifier = 'replace';
+
+                    $success = $user->setTempPermission($user, $nodeString, $value, $durationSeconds, $modifier);
+
+                    if ($success) {
+                        $sender->sendMessage("§aTemporary permission '$nodeString' set to " . ($value ? "true" : "false") . " for " . Duration::betweenNowAnd($durationSeconds));
+                    } else {
+                        $sender->sendMessage("§cPermission '$nodeString' could not be set (denied by modifier).");
+                    }
+                });
+                break;
+
+            case "unsettemp":
+                NovaPermsPlugin::getUserManager()->modifyUser($target, function (User $user) use ($sender, $args) {
+
+                    $nodeString = array_shift($args);
+                    if ($nodeString === null) {
+                        $sender->sendMessage("§cError: No node specified.");
+                        return;
+                    }
+
+                    $durationStr = array_shift($args) ?? null;
+                    $durationSeconds = $durationStr !== null ? Duration::fromString($durationStr)->getSeconds() : null;
+
+                    $success = $user->unsetTempPermission($user, $nodeString, $durationSeconds);
+
+                    if ($success) {
+                        if ($durationSeconds !== null) {
+                            $sender->sendMessage("§aTemporary permission '$nodeString' unset and denied for " . Duration::betweenNowAnd($durationSeconds) . ".");
+                        } else {
+                            $sender->sendMessage("§aTemporary permission '$nodeString' unset successfully.");
+                        }
+                    } else {
+                        $sender->sendMessage("§cPermission '$nodeString' not found or already expired.");
+                    }
+                });
+                break;
+            case "check":
+                NovaPermsPlugin::getUserManager()->modifyUser($target, function (User $user) use ($sender, $args) {
+                    $nodeString = array_shift($args);
+                    if ($nodeString === null) {
+                        $sender->sendMessage("§cError: No node specified.");
+                        return;
+                    }
+
+                    $node = $user->findPermissionNode($nodeString);
+
+                    if ($node !== null) {
+                        $status = $node->getValue() ? "granted" : "denied";
+                        $expiry = $node->getExpiry() !== -1 ? " (expires in " . Duration::betweenNowAnd($node->getExpiry() - time()) . ")" : "";
+                        $sender->sendMessage("§aPermission '$nodeString' is $status$expiry.");
+                    } else {
+                        $sender->sendMessage("§cPermission '$nodeString' not found for user {$user->getName()}.");
+                    }
+                });
+                break;
+            case "clear":
+                NovaPermsPlugin::getUserManager()->modifyUser($target, function (User $user) use ($sender) {
+                    $permissions = $user->getOwnPermissionNodes();
+
+                    if (empty($permissions)) {
+                        $sender->sendMessage("§eUser {$user->getName()} has no permissions to clear.");
+                        return;
+                    }
+
+                    $user->setPermissions([]);
+
+                    $sender->sendMessage("§aAll permissions for user {$user->getName()} have been cleared.");
+                });
+                break;
+        }
+    }
+
+    public function permissionForGroupHandler(CommandSender $sender, array $args, string $target): void
+    {
+        $sub = array_shift($args) ?? null;
+
+        if ($sub === null) {
+            $sender->sendMessage("error 3");
+        }
+
+        switch (strtolower($sub)) {
+            case "info":
+                break;
+            case "set":
+                break;
+            case "unset":
+                break;
+        }
     }
 }

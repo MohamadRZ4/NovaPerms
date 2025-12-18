@@ -33,7 +33,8 @@ class PermissionNodeBuilder extends AbstractNodeBuilder
             $this->key,
             $this->contextSet,
             $this->value,
-            $this->expiry
+            $this->expiry,
+            $this->negated
         );
     }
 }

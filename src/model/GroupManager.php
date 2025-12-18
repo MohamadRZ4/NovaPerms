@@ -7,6 +7,8 @@ use MohamadRZ\NovaPerms\node\Types\DisplayNameNode;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
 use MohamadRZ\NovaPerms\node\Types\WeightNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
+use pocketmine\promise\Promise;
+use pocketmine\promise\PromiseResolver;
 
 class GroupManager {
     const DEFAULT_GROUP = "default";
@@ -60,13 +62,17 @@ class GroupManager {
         return true;
     }
 
-    public function deleteGroup(Group|string $group): void
+    public function deleteGroup(Group|string $group): Promise
     {
-        $group = $group instanceof Group
-            ? $group->getName()
-            : strtolower($group);
-        if (!isset($this->groups[$group])) return;
-        NovaPermsPlugin::getStorage()->deleteGroup($group);
+        $groupName = $group instanceof Group ? $group->getName() : strtolower($group);
+
+        if (!isset($this->groups[$groupName])) {
+            $resolver = new PromiseResolver();
+            $resolver->resolve(false);
+            return $resolver->getPromise();
+        }
+
+        return NovaPermsPlugin::getStorage()->deleteGroup($groupName);
     }
 
     public function registerGroup(Group $group): void

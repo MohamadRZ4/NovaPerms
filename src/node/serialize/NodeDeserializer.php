@@ -1,9 +1,8 @@
 <?php
 
-namespace MohamadRZ\NovaPerms\node\serializers;
+namespace MohamadRZ\NovaPerms\node\serialize;
 
-use MohamadRZ\NovaPerms\context\ImmutableContextSet;
-use MohamadRZ\NovaPerms\context\serializers\ContextDeserializer;
+use MohamadRZ\NovaPerms\context\serialize\ContextDeserializer;
 use MohamadRZ\NovaPerms\node\Types\DisplayNameNode;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
 use MohamadRZ\NovaPerms\node\Types\MetaNode;
@@ -18,25 +17,34 @@ final class NodeDeserializer
     {
         $result = [];
 
-        if (empty($rawData)) {
-            return $result;
-        }
-
         foreach ($rawData as $permission) {
-            $name = trim($permission["name"] ?? "");
-            if ($name === "") {
-                continue;
+
+            if (is_string($permission)) {
+                $permission = [
+                    "name" => trim($permission)
+                ];
             }
 
-            $value   = $permission["value"]  ?? true;
+            if (!is_array($permission)) {
+                $permission = [];
+            }
+
+            $name = trim((string)($permission["name"] ?? ""));
+
+            if ($name === "") {
+                return [];
+            }
+
+            $value   = $permission["value"] ?? true;
             $expire  = $permission["expire"] ?? null;
-            $context = $permission["context"] ?? [];
+            $negated = $permission["negated"] ?? false;
 
             $parts = explode(".", $name);
-            $type  = strtolower($parts[0] ?? "");
             $node  = null;
+            $type  = strtolower($parts[0] ?? "");
 
             switch ($type) {
+                case "prefix":
                 case "perfix":
                     if (count($parts) >= 3) {
                         $node = PrefixNode::builder($parts[2], $parts[1]);
@@ -50,6 +58,7 @@ final class NodeDeserializer
                     break;
 
                 case "displayname":
+                case "display":
                     if (count($parts) >= 2) {
                         $node = DisplayNameNode::builder($parts[1]);
                     }
@@ -61,6 +70,7 @@ final class NodeDeserializer
                     }
                     break;
 
+                case "weight":
                 case "wight":
                     if (count($parts) >= 2) {
                         $node = WeightNode::builder($parts[1]);
@@ -74,16 +84,16 @@ final class NodeDeserializer
                     break;
             }
 
-            if (!$node) {
+            if ($node === null) {
                 $node = PermissionNode::builder($name);
             }
 
-            $node->value($value);
+            $node->value((bool)$value)
+                ->negated((bool)$negated);
+
             if ($expire !== null) {
                 $node->expiry((int)$expire);
             }
-
-            //$node->withContext($context);
 
             $result[] = $node->build();
         }

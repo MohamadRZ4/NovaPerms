@@ -22,11 +22,15 @@ class Group extends PermissionHolder
         $this->updateUsersForGroup($this->getName());
     }
 
-    public function removePermission(AbstractNode|string $node): void
+    public function removePermission(AbstractNode|string $node): bool
     {
-        parent::removePermission($node);
+        $isRemoved = parent::removePermission($node);
 
-        $this->updateUsersForGroup($this->getName());
+        if ($isRemoved) {
+            $this->updateUsersForGroup($this->getName());
+        }
+
+        return $isRemoved;
     }
 
 }

@@ -2,8 +2,7 @@
 
 namespace MohamadRZ\NovaPerms\node\Types;
 
-use MohamadRZ\NovaPerms\permission\context\ContextSet;
-use MohamadRZ\NovaPerms\context\BaseContextSet;
+use MohamadRZ\NovaPerms\context\ContextSet;
 use MohamadRZ\NovaPerms\node\AbstractNode;
 use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
 
@@ -17,9 +16,10 @@ class MetaNode extends AbstractNode
         string $metaValue,
         ContextSet $contextSet,
         bool $value = true,
-        int $expiry = -1
+        int $expiry = -1,
+        bool $negated = false
     ) {
-        parent::__construct("meta.{$metaKey}.{$metaValue}", $contextSet, $value, $expiry);
+        parent::__construct("meta.{$metaKey}.{$metaValue}", $contextSet, $value, $expiry, $negated);
         $this->metaKey = $metaKey;
         $this->metaValue = $metaValue;
     }
@@ -63,7 +63,8 @@ class MetaNodeBuilder extends AbstractNodeBuilder
             $this->metaValue,
             $this->contextSet,
             $this->value,
-            $this->expiry
+            $this->expiry,
+            $this->negated
         );
     }
 }

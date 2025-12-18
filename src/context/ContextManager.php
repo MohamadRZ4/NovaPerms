@@ -10,36 +10,31 @@ class ContextManager {
     /** @var ContextCalculator[] */
     private array $calculators = [];
 
-    public function registerCalculator(ContextCalculator $calculator): void {
+    public function register(ContextCalculator $calculator): void {
         $this->calculators[] = $calculator;
     }
 
-    public function clearCalculators(): void {
-        $this->calculators = [];
-    }
-
-    public function getContext(Player $player): ImmutableContextSet {
-        $collector = new PermissionContextCollector();
+    public function getContext(Player $player): ContextSet {
+        $context = new ContextSet();
 
         foreach ($this->calculators as $calculator) {
-            $calculator->calculate($player, $collector);
+            $calculator->calculate($player, $context);
         }
 
-        return $collector->toImmutableSet();
+        return $context;
     }
 
-    public function getAllPossibleContexts(): ImmutableContextSet {
-        $builder = [];
+    public function getAllPossibleContexts(): ContextSet {
+        $context = new ContextSet();
 
         foreach ($this->calculators as $calculator) {
-            $potential = $calculator->estimatePotentialContexts();
-            foreach ($potential->getAll() as $key => $values) {
+            foreach ($calculator->possible() as $key => $values) {
                 foreach ($values as $value) {
-                    $builder[$key][] = $value;
+                    $context->add($key, $value);
                 }
             }
         }
 
-        return new ImmutableContextSet($builder);
+        return $context;
     }
 }

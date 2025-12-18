@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MohamadRZ\NovaPerms;
 
+use MohamadRZ\NovaPerms\command\NovaPermsCommand;
 use MohamadRZ\NovaPerms\config\ConfigManager;
 use MohamadRZ\NovaPerms\context\calculator\GameModeCalculator;
 use MohamadRZ\NovaPerms\context\ContextManager;
@@ -57,16 +58,14 @@ class NovaPermsPlugin extends PluginBase {
         foreach ($logo as $line) {
             $this->getLogger()->info($line);
         }
-/*        if(!CommandPacketListener::isRegistered()) {
-            CommandPacketListener::register($this);
-        }*/
+
         self::$datePath = $this->getDataFolder();
         self::$configManager = new ConfigManager($this, $this->getDataFolder());
         self::$storage = new Storage($this);
 
 
         self::$contextManager = new ContextManager();
-        self::$contextManager->registerCalculator(new GameModeCalculator());
+        self::$contextManager->register(new GameModeCalculator());
 
         $allKnownPermissions = [];
         $pocketminePermissionManager = PermissionManager::getInstance()->getPermissions();
@@ -80,7 +79,7 @@ class NovaPermsPlugin extends PluginBase {
 
         $this->getServer()->getPluginManager()->registerEvents(new EventListener(), $this);
         $this->getScheduler()->scheduleRepeatingTask(new UpdateTask(), 20 * 3);
-        //$this->getServer()->getCommandMap()->register("novaperms", new NPCommand($this));
+        $this->getServer()->getCommandMap()->register("novaperms", new NovaPermsCommand("novaperms"));
         $time = $timer->end();
         $this->getLogger()->info("Successfully enabled! (took " . $time . "ms)");
     }

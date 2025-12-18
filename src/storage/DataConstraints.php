@@ -6,16 +6,16 @@ final class DataConstraints {
 
     private function __construct() {}
 
-    public const int MAX_PERMISSION_LENGTH = 200;
+    public const MAX_PERMISSION_LENGTH = 200;
 
-    public const int MAX_TRACK_NAME_LENGTH = 36;
-    public const int MAX_GROUP_NAME_LENGTH = 36;
+    public const MAX_TRACK_NAME_LENGTH = 36;
+    public const MAX_GROUP_NAME_LENGTH = 36;
 
-    public const int MAX_PLAYER_USERNAME_LENGTH = 16;
-    public const string PLAYER_USERNAME_INVALID_CHAR_PATTERN = '/[^A-Za-z0-9_]/';
+    public const MAX_PLAYER_USERNAME_LENGTH = 16;
+    public const PLAYER_USERNAME_INVALID_CHAR_PATTERN = '/[^A-Za-z0-9_]/';
 
-    public const int MAX_SERVER_LENGTH = 36;
-    public const int MAX_WORLD_LENGTH = 36;
+    public const MAX_SERVER_LENGTH = 36;
+    public const MAX_WORLD_LENGTH = 36;
 
     public static function permissionTest(string $s) : bool {
         return $s !== '' && strlen($s) <= self::MAX_PERMISSION_LENGTH;

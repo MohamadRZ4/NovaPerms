@@ -15,11 +15,13 @@ class DisplayNameNode extends AbstractNode
         ?ContextSet $contextSet = null,
         bool $value = true,
         int $expiry = -1,
-    ) {
-        parent::__construct($displayName, $contextSet, $value, $expiry);
+        bool $negated = false
+    )
+    {
+        parent::__construct($displayName, $contextSet, $value, $expiry, $negated);
         $this->displayName = $displayName;
-    }
 
+    }
     public static function builder(string $group): DisplayNameNodeBuilder
     {
         return new DisplayNameNodeBuilder($group);
@@ -62,7 +64,8 @@ class DisplayNameNodeBuilder extends AbstractNodeBuilder
             $this->displayName,
             $this->contextSet,
             $this->value,
-            $this->expiry
+            $this->expiry,
+            $this->negated
         );
     }
 }

@@ -4,8 +4,6 @@ namespace MohamadRZ\NovaPerms\node;
 
 
 use MohamadRZ\NovaPerms\context\ContextSet;
-use MohamadRZ\NovaPerms\context\ImmutableContextSet;
-use MohamadRZ\NovaPerms\context\MutableContextSet;
 
 abstract class AbstractNodeBuilder
 {
@@ -13,10 +11,11 @@ abstract class AbstractNodeBuilder
     protected bool $value = true;
     protected int $expiry = -1;
     protected ContextSet $contextSet;
+    protected bool $negated = false;
 
     public function __construct()
     {
-        $this->contextSet = new ImmutableContextSet();
+        $this->contextSet = new ContextSet();
     }
 
     public function key(string $key): self { $this->key = $key; return $this; }
@@ -24,7 +23,12 @@ abstract class AbstractNodeBuilder
 
     public function contextSet(ContextSet $contextSet): self
     {
-        $this->contextSet = $contextSet;
+        //coming soon..
+        /*$this->contextSet = $contextSet;*/
+        return $this;
+    }
+    public function negated(bool $negated = true): self {
+        $this->negated = $negated;
         return $this;
     }
     public function expiry(?int $expiry): self {
