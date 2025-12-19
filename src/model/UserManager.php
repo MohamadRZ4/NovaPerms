@@ -91,6 +91,7 @@ class UserManager
         }
     }
 
+    /** @return User[] */
     public function getAllUsers(): array
     {
         return array_values($this->users);

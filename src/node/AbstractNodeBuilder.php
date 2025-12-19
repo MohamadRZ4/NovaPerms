@@ -33,7 +33,7 @@ abstract class AbstractNodeBuilder
     }
     public function expiry(?int $expiry): self {
         if ($expiry !== null) {
-            $this->expiry = time() + $expiry;
+            $this->expiry = $expiry;
         }
         return $this;
     }

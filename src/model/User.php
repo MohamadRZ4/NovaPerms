@@ -135,14 +135,14 @@ class User extends PermissionHolder
         });
     }
 
-    public function auditTemporaryNodes(): bool
+    public function removePermission(AbstractNode|array|string $nodes): bool
     {
-        $changed = parent::auditTemporaryNodes();
-
-        if ($changed) {
-            $this->updatePermissions();
+        $isChanged = parent::removePermission($nodes);
+        if ($isChanged) {
+            $this->runWhenInitialized(function() {
+                $this->updatePermissions();
+            });
         }
-
-        return $changed;
+        return $isChanged;
     }
 }
