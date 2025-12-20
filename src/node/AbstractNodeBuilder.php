@@ -11,7 +11,6 @@ abstract class AbstractNodeBuilder
     protected bool $value = true;
     protected int $expiry = -1;
     protected ContextSet $contextSet;
-    protected bool $negated = false;
 
     public function __construct()
     {
@@ -25,10 +24,6 @@ abstract class AbstractNodeBuilder
     {
         //coming soon..
         /*$this->contextSet = $contextSet;*/
-        return $this;
-    }
-    public function negated(bool $negated = true): self {
-        $this->negated = $negated;
         return $this;
     }
     public function expiry(?int $expiry): self {

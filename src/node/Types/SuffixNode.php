@@ -16,10 +16,9 @@ class SuffixNode extends AbstractNode
         int $priority,
         ContextSet $contextSet,
         bool $value = true,
-        int $expiry = -1,
-        bool $negated = false
+        int $expiry = -1
     ) {
-        parent::__construct("suffix.{$priority}.{$suffix}", $contextSet, $value, $expiry, $negated);
+        parent::__construct("suffix.{$priority}.{$suffix}", $contextSet, $value, $expiry);
         $this->suffix = $suffix;
         $this->priority = $priority;
     }
@@ -63,8 +62,7 @@ class SuffixNodeBuilder extends AbstractNodeBuilder
             $this->priority,
             $this->contextSet,
             $this->value,
-            $this->expiry,
-            $this->negated
+            $this->expiry
         );
     }
 }

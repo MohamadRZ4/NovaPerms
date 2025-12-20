@@ -16,10 +16,9 @@ class MetaNode extends AbstractNode
         string $metaValue,
         ContextSet $contextSet,
         bool $value = true,
-        int $expiry = -1,
-        bool $negated = false
+        int $expiry = -1
     ) {
-        parent::__construct("meta.{$metaKey}.{$metaValue}", $contextSet, $value, $expiry, $negated);
+        parent::__construct("meta.{$metaKey}.{$metaValue}", $contextSet, $value, $expiry);
         $this->metaKey = $metaKey;
         $this->metaValue = $metaValue;
     }
@@ -63,8 +62,7 @@ class MetaNodeBuilder extends AbstractNodeBuilder
             $this->metaValue,
             $this->contextSet,
             $this->value,
-            $this->expiry,
-            $this->negated
+            $this->expiry
         );
     }
 }

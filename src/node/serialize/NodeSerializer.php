@@ -19,8 +19,7 @@ final class NodeSerializer
             $entry = [
                 "name"    => $node->getKey(),
                 "value"   => $node->getValue(),
-                "expire"  => $node->getExpiry(),
-                "negated" => $node->isNegated(),
+                "expire"  => $node->getExpiry()
             ];
 
             // coming soon: context

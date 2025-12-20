@@ -25,6 +25,7 @@ abstract class PermissionHolder
             if (!$node instanceof AbstractNode) {
                 $deserialized = NodeDeserializer::deserialize([$node]);
                 if (empty($deserialized)) continue;
+
                 $node = $deserialized[0];
                 $node = $node->toBuilder()->value($value)->build();
             }
@@ -33,7 +34,7 @@ abstract class PermissionHolder
                 $this->addInheritance($node);
             }
 
-            $storageKey = $node->getKey() . ($node->isNegated() ? ':negated' : '');
+            $storageKey = $this->makeStorageKey($node);
             $this->permissions[$storageKey] = $node;
         }
     }
@@ -46,39 +47,28 @@ abstract class PermissionHolder
         foreach ($nodesList as $node) {
             if (is_string($node)) {
                 $deserialized = NodeDeserializer::deserialize([$node]);
-                if (empty($deserialized)) {
-                    continue;
-                }
+                if (empty($deserialized)) continue;
                 $node = $deserialized[0];
             }
 
-            if (!$node instanceof AbstractNode) {
-                continue;
+            if (!$node instanceof AbstractNode) continue;
+
+            foreach ($this->permissions as $key => $existing) {
+                if (
+                    $existing->getKey() === $node->getKey() &&
+                    $existing->getExpiry() === -1
+                ) {
+                    if ($existing instanceof InheritanceNode) {
+                        $this->removeInheritance($existing);
+                    }
+
+                    unset($this->permissions[$key]);
+                    $removed = true;
+                }
             }
-
-            $storageKey = $node->getKey() . ($node->isNegated() ? ':negated' : '');
-
-            if (!isset($this->permissions[$storageKey])) {
-                continue;
-            }
-
-            $existing = $this->permissions[$storageKey];
-
-            if ($existing instanceof InheritanceNode) {
-                $this->removeInheritance($existing);
-            }
-
-            unset($this->permissions[$storageKey]);
-            $removed = true;
         }
 
         return $removed;
-    }
-
-    public function hasPermission(AbstractNode|string $node): bool
-    {
-        $name = is_string($node) ? $node : $node->getKey();
-        return isset($this->permissions[$name]) && $this->permissions[$name]->getValue() === true;
     }
 
     public function findPermissionNode(AbstractNode|string $nodeInput): ?AbstractNode
@@ -94,7 +84,6 @@ abstract class PermissionHolder
         return null;
     }
 
-    // ==================== Temporary Permissions ====================
 
     public function setTempPermission(User|Group $holder, string|AbstractNode|array $nodeInput, bool $value = true, int $durationSeconds = 3600, string $modifier = 'replace'): bool
     {
@@ -146,9 +135,6 @@ abstract class PermissionHolder
                 break;
 
             case 'deny':
-                if ($existingNode) {
-                    return false;
-                }
                 $builder->expiry($expiry);
                 break;
 
@@ -166,8 +152,12 @@ abstract class PermissionHolder
         return true;
     }
 
-    public function unsetTempPermission(User|Group $holder, string|AbstractNode|array $nodeInput, ?int $durationSeconds = null): bool
-    {
+    public function unsetTempPermission(
+        User|Group $holder,
+        string|AbstractNode|array $nodeInput,
+        ?int $durationSeconds = null
+    ): bool {
+
         if (is_string($nodeInput) || is_array($nodeInput)) {
             $nodes = NodeDeserializer::deserialize(
                 is_array($nodeInput) ? $nodeInput : [$nodeInput]
@@ -178,33 +168,51 @@ abstract class PermissionHolder
             $node = $nodeInput;
         }
 
-        $found = false;
         $now = time();
+        $changed = false;
 
-        foreach ($this->getOwnPermissionNodes() as $existing) {
-            if ($existing->getKey() === $node->getKey()) {
-                $found = true;
+        foreach ($holder->getOwnPermissionNodes() as $existing) {
+
+            if ($existing->getKey() !== $node->getKey()) continue;
+
+            if ($existing->getExpiry() === -1) continue;
+
+            if ($durationSeconds === null) {
+                $holder->removePermission($existing);
+                $changed = true;
+                continue;
             }
+
+            $newExpiry = $existing->getExpiry() - $durationSeconds;
+
+            if ($newExpiry <= $now) {
+                $holder->removePermission($existing);
+            } else {
+                $newNode = $existing->toBuilder()
+                    ->expiry($newExpiry)
+                    ->build();
+
+                $holder->removePermission($existing);
+                $holder->addPermission($newNode);
+            }
+
+            $changed = true;
         }
 
-        if (!$found) return false;
-
-        if ($durationSeconds !== null) {
-            $denyNode = (new PermissionNodeBuilder($node->getKey()))
-                ->value(false)
-                ->negated(true)
-                ->expiry($now + $durationSeconds)
-                ->build();
-            $holder->addPermission($denyNode);
-        } else {
-            $this->removePermission($node->getKey());
-        }
-
-        if ($holder instanceof User) {
+        if ($changed && $holder instanceof User) {
             $holder->updatePermissions();
         }
 
-        return true;
+        return $changed;
+    }
+
+    private function makeStorageKey(AbstractNode $node): string
+    {
+        if ($node->getExpiry() === -1) {
+            return $node->getKey();
+        }
+
+        return $node->getKey() . '#temp@' . $node->getExpiry();
     }
 
     public function auditTemporaryNodes(): bool
@@ -302,7 +310,7 @@ abstract class PermissionHolder
 
             $checked[$current] = true;
 
-            $group = NovaPermsPlugin::getGroupManager()->getGroup($current);
+            $group = NovaPermsPlugin::getGroupManager()->getIfLoaded($current);
             if ($group !== null) {
                 foreach ($group->getInheritances() as $inheritNode) {
                     $stack[] = $inheritNode->getGroup();

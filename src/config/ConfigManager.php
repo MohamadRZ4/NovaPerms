@@ -19,4 +19,9 @@ class ConfigManager
     {
         return $this->config->get("database");
     }
+
+    public function getPrimaryGroupCalculation()
+    {
+        return $this->config->get("primary-group-calculation");
+    }
 }

@@ -70,29 +70,18 @@ class Storage implements IStorage
         $user = NovaPermsPlugin::getUserManager()->getOrMake($username);
 
         $this->database->executeSelect(
-            "data.users.getOrCreate",
+            "data.users.get",
             [
-                "username" => $username,
-                "permissions" => json_encode([])
+                "username" => $username
             ],
-            function (array $rows) use ($user, $resolver) {
+            function (array $rows) use ($username, $user, $resolver) {
                 $this->setNodes($rows, $user, $resolver);
             },
-            function() use ($resolver) {
+            function () use ($resolver) {
                 $resolver->reject();
             }
         );
 
-        return $resolver->getPromise();
-    }
-
-    public function loadGroup(string $groupName): Promise
-    {
-        $resolver = new PromiseResolver();
-        $this->database->executeSelect("data.groups.get", ["name" => $groupName], function(array $rows) use ($groupName, $resolver) {
-            $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
-            $this->setNodes($rows, $group, $resolver);
-        }, fn() => $resolver->reject());
         return $resolver->getPromise();
     }
 
@@ -104,6 +93,16 @@ class Storage implements IStorage
             "username"    => $user->getName(),
             "permissions" => $serialized
         ], fn() => $resolver->resolve(true), fn() => $resolver->reject());
+        return $resolver->getPromise();
+    }
+
+    public function loadGroup(string $groupName): Promise
+    {
+        $resolver = new PromiseResolver();
+        $this->database->executeSelect("data.groups.get", ["name" => $groupName], function(array $rows) use ($groupName, $resolver) {
+            $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
+            $this->setNodes($rows, $group, $resolver);
+        }, fn() => $resolver->reject());
         return $resolver->getPromise();
     }
 
@@ -198,7 +197,7 @@ class Storage implements IStorage
 
         $this->database->executeGeneric("data.groups.delete", ["name" => $groupName], function() use ($groupName, $resolver) {
 
-            $group = NovaPermsPlugin::getGroupManager()->getGroup($groupName);
+            $group = NovaPermsPlugin::getGroupManager()->getIfLoaded($groupName);
             if ($group !== null) {
                 NovaPermsPlugin::getGroupManager()->processGroupDeletion($groupName);
             }

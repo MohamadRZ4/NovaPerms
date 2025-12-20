@@ -9,34 +9,34 @@ use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerLoginEvent;
 use pocketmine\event\player\PlayerPreLoginEvent;
 use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\server\DataPacketSendEvent;
+use pocketmine\network\mcpe\protocol\AvailableCommandsPacket;
+use pocketmine\network\mcpe\protocol\types\command\CommandEnum;
+use pocketmine\network\mcpe\protocol\types\command\CommandOverload;
+use pocketmine\network\mcpe\protocol\types\command\CommandParameter;
 use pocketmine\Server;
 
 class EventListener implements Listener
 {
     public function onLogin(PlayerLoginEvent $event): void
     {
-        $username = $event->getPlayer()->getName();
+        $username = strtolower($event->getPlayer()->getName());
         NovaPermsPlugin::getUserManager()->loadUser($username)->onCompletion(
-            function($user) {
+            function(User $user) {
                 $user->setIsInitialized(true);
+                $user->updatePermissions();
                 Server::getInstance()->getLogger()->info("User {$user->getName()} loaded.");
             },
             function() use ($username) {
                 Server::getInstance()->getLogger()->warning("Failed to load user {$username} from database.");
             }
-        );;
-    }
-
-    public function onJoin(PlayerJoinEvent $event): void
-    {
-        $player = $event->getPlayer();
-        $user = NovaPermsPlugin::getUserManager()->getUser($player->getName());
-        $user->addPermission(new RegexPermission("pocketmine.*"));
+        );
     }
 
     public function onQuit(PlayerQuitEvent $event): void
     {
-        NovaPermsPlugin::getUserManager()->saveUser($event->getPlayer()->getName());
+        $username = strtolower($event->getPlayer()->getName());
+        NovaPermsPlugin::getUserManager()->saveUser($username);
         NovaPermsPlugin::getUserManager()->cleanupUser($event->getPlayer()->getName());
     }
 }

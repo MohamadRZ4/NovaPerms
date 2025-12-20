@@ -11,24 +11,17 @@ abstract class AbstractNode implements NodeInterface
     protected ContextSet $contextSet;
     protected bool $value;
     protected int $expiry;
-    protected bool $negated = false;
 
     public function __construct(
         string $key,
         ?ContextSet $contextSet = null,
         bool $value = true,
-        int $expiry = -1,
-        bool $negated = false
+        int $expiry = -1
     ){
         $this->key = $key;
         $this->contextSet = $contextSet ?? new ContextSet();
         $this->value = $value;
         $this->expiry = $expiry;
-        $this->negated = $negated;
-    }
-
-    public function isNegated(): bool {
-        return $this->negated;
     }
 
     public function getKey(): string { return $this->key; }

@@ -44,4 +44,12 @@ database:
 # - If you choose MySQL, ensure the database exists and the user has proper permissions.
 # - Changing the database type after initial setup may require data migration.
 # - Incorrect database settings will prevent NovaPerms from initializing correctly.
+
+
+# - Possible options:
+#   => stored                  use the value stored against the users record in the file/database
+#   => parents-by-weight       just use the users most highly weighted parent
+#   => all-parents-by-weight   same as above, but calculates based upon all parents inherited from
+#                              both directly and indirectly
+primary-group-calculation: "parents-by-weight"
 ########################################################################################

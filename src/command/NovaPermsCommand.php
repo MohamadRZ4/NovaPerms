@@ -10,6 +10,7 @@ use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use MohamadRZ\NovaPerms\utils\Duration;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\lang\Language;
 use pocketmine\utils\TextFormat as TF;
 
 class NovaPermsCommand extends Command
@@ -111,33 +112,31 @@ class NovaPermsCommand extends Command
 
     public function userHandler(CommandSender $sender, array $args): void
     {
-        $target = array_shift($args) ?? null;
-        $sub = array_shift($args) ?? null;
+        $target = array_shift($args);
+        $sub = array_shift($args);
 
-        if ($sub === null || $target === null) {
+        if ($target === null || $sub === null) {
             $sender->sendMessage("error 1");
+            return;
         }
 
-        switch (strtolower($sub)) {
-            case "permission":
-                $this->permissionHandler($sender, $args, $target, "user");
-                break;
+        if ($sub === 'permission') {
+            $this->permissionHandler($sender, $args, $target, 'user');
         }
     }
 
     public function groupHandler(CommandSender $sender, array $args): void
     {
-        $group = array_shift($args) ?? null;
-        $sub = array_shift($args) ?? null;
+        $target = array_shift($args);
+        $sub = array_shift($args);
 
-        if ($sub === null || $group === null) {
+        if ($target === null || $sub === null) {
             $sender->sendMessage("error 2");
+            return;
         }
 
-        switch (strtolower($sub)) {
-            case "permission":
-                $this->permissionHandler($sender, $args, $group, "group");
-                break;
+        if ($sub === 'permission') {
+            $this->permissionHandler($sender, $args, $target, 'group');
         }
     }
 
@@ -145,7 +144,7 @@ class NovaPermsCommand extends Command
         CommandSender $sender,
         array $args,
         string $target,
-        string $type // 'user' | 'group'
+        string $type // user | group
     ): void {
         $sub = array_shift($args);
         if ($sub === null) {
@@ -155,16 +154,16 @@ class NovaPermsCommand extends Command
 
         $isUser = $type === 'user';
 
-        $loader = function (callable $callback) use ($isUser, $target, $sender) {
+        $loader = function (callable $consumer) use ($isUser, $target, $sender) {
             if ($isUser) {
-                NovaPermsPlugin::getUserManager()->modifyUser($target, $callback);
+                NovaPermsPlugin::getUserManager()->getOrLoadUser($target, $consumer);
             } else {
-                $group = NovaPermsPlugin::getGroupManager()->getGroup($target);
+                $group = NovaPermsPlugin::getGroupManager()->getIfLoaded($target);
                 if ($group === null) {
                     $sender->sendMessage("§cGroup not found.");
                     return;
                 }
-                $callback($group);
+                $consumer($group);
             }
         };
 
@@ -172,41 +171,61 @@ class NovaPermsCommand extends Command
 
             /* ================= INFO ================= */
             case "info":
-                $loader(function ($holder) use ($sender) {
-                    $permissions = $holder->getPermissions();
+                $loader(function ($holder) use ($sender, $args) {
+                    $page = array_shift($args) ?? null;
+                    if ($page === null) $page = 1;
+                    $name = strtolower($holder->getName());
 
-                    $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
-                    $sender->sendMessage(
-                        TF::YELLOW . " NovaPerms " .
-                        TF::GRAY . "Info {$holder->getName()}"
-                    );
-                    $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+                    $allPermissions = array_values($holder->getPermissions());
+
+                    $perPage = 10;
+                    $permsCount = count($allPermissions);
+                    $pages = max(1, (int)ceil($permsCount / $perPage));
+
+                    $page = max(1, min($page, $pages));
+
+                    $offset = ($page - 1) * $perPage;
+                    $permissions = array_slice($allPermissions, $offset, $perPage);
+
+                    $p = NovaPermsPlugin::PREFIX;
 
                     if (empty($permissions)) {
-                        $sender->sendMessage(TF::GRAY . "No permissions assigned.");
-                    } else {
-                        foreach ($permissions as $key => $node) {
-                            $expiry = $node->getExpiry();
+                        $sender->sendMessage($p . " §b$name §adoes not have any permissions set.");
+                        return;
+                    }
 
-                            if ($expiry === -1) {
-                                $expiryText = TF::GREEN . "never";
-                            } elseif ($expiry <= time()) {
-                                $expiryText = TF::DARK_RED . "expired";
+                    $sender->sendMessage(
+                        $p . " §b{$name}'s Permissions: " .
+                        "§7(page §f$page §7of §f$pages §7- §f$permsCount §7entries)"
+                    );
+
+                    foreach ($permissions as $node) {
+
+                        $valueColor = $node->getValue() ? TF::GREEN : TF::RED;
+                        $permName = $node->getKey();
+
+                        $sender->sendMessage(
+                            TF::GRAY . "> " .
+                            $valueColor . $permName
+                        );
+
+                        $expiry = $node->getExpiry();
+
+                        if ($expiry !== -1) {
+
+                            if ($expiry <= time()) {
+                                $sender->sendMessage(
+                                    TF::DARK_GRAY . "-    " .
+                                    TF::RED . "expired"
+                                );
                             } else {
-                                $expiryText =
-                                    TF::RED . date("Y-m-d H:i:s", $expiry) .
-                                    TF::GRAY . " (" .
-                                    Duration::betweenNowAnd($expiry)->format() .
-                                    " left)";
+                                $sender->sendMessage(
+                                    TF::DARK_GRAY . "-    " .
+                                    TF::DARK_GREEN .
+                                    "expires in " .
+                                    Duration::betweenNowAnd($expiry)->format()
+                                );
                             }
-
-                            $sender->sendMessage(
-                                TF::AQUA . " - " . TF::WHITE . $key .
-                                TF::DARK_GRAY . " | " .
-                                TF::GREEN . ($node->getValue() ? "true" : "false") .
-                                TF::DARK_GRAY . " | " .
-                                TF::GRAY . "expires: " . $expiryText
-                            );
                         }
                     }
 
@@ -214,7 +233,6 @@ class NovaPermsCommand extends Command
                 });
                 break;
 
-            /* ================= SET ================= */
             case "set":
                 $loader(function ($holder) use ($sender, $args) {
                     $node = array_shift($args);
@@ -233,19 +251,18 @@ class NovaPermsCommand extends Command
                 });
                 break;
 
-            /* ================= UNSET ================= */
             case "unset":
                 $loader(function ($holder) use ($sender, $args) {
                     $node = array_shift($args);
                     if ($node === null) {
-                        $sender->sendMessage("error: No node specified.");
+                        $sender->sendMessage("§cNo node specified.");
                         return;
                     }
 
                     if ($holder->removePermission($node)) {
-                        $sender->sendMessage("Permission '$node' unset successfully.");
+                        $sender->sendMessage("§aPermission '$node' unset.");
                     } else {
-                        $sender->sendMessage("Permission '$node' not found.");
+                        $sender->sendMessage("§cPermission '$node' not found.");
                     }
                 });
                 break;
@@ -276,15 +293,7 @@ class NovaPermsCommand extends Command
                         $modifier = 'replace';
                     }
 
-                    $success = $holder->setTempPermission(
-                        $holder,
-                        $node,
-                        $value,
-                        $seconds,
-                        $modifier
-                    );
-
-                    if ($success) {
+                    if ($holder->setTempPermission($holder, $node, $value, $seconds, $modifier)) {
                         $sender->sendMessage(
                             "§aTemporary permission '$node' set to " .
                             ($value ? "true" : "false") .
@@ -351,6 +360,38 @@ class NovaPermsCommand extends Command
                     $sender->sendMessage("§aAll permissions cleared.");
                 });
                 break;
+        }
+    }
+
+    public function parentHandler(
+        CommandSender $sender,
+        array $args,
+        string $target
+    ): void
+    {
+        $sub = array_shift($args);
+        if ($sub === null) {
+            $sender->sendMessage("error 3");
+            return;
+        }
+
+        $isUser = $type === 'user';
+
+        $loader = function (callable $consumer) use ($isUser, $target, $sender) {
+            if ($isUser) {
+                NovaPermsPlugin::getUserManager()->getOrLoadUser($target, $consumer);
+            } else {
+                $group = NovaPermsPlugin::getGroupManager()->getIfLoaded($target);
+                if ($group === null) {
+                    $sender->sendMessage("§cGroup not found.");
+                    return;
+                }
+                $consumer($group);
+            }
+        };
+
+        switch (strtolower($sub)) {
+            case "":
         }
     }
 

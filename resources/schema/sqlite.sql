@@ -4,8 +4,8 @@
 	-- #{ users
 		CREATE TABLE IF NOT EXISTS Users
 		(
-			username       VARCHAR(32) PRIMARY KEY NOT NULL,
-			permissions    TEXT        DEFAULT '[]'
+            username    TEXT PRIMARY KEY COLLATE NOCASE,
+            permissions TEXT NOT NULL DEFAULT '[]'
 		);
 	-- #}
 	-- #{ groups
@@ -29,12 +29,6 @@
 			-- # :username string
 			SELECT * FROM Users WHERE username = :username;
 		-- #}
-        -- #{ getOrCreate
-            -- # :username string
-            -- # :permissions string "[]"
-            INSERT OR IGNORE INTO Users(username, permissions) VALUES (:username, :permissions);
-            SELECT * FROM Users WHERE username = :username;
-        -- #}
 		-- #{ set
 			-- # :username string
 			-- # :permissions string "[]"

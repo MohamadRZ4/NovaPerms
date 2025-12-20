@@ -5,7 +5,6 @@ namespace MohamadRZ\NovaPerms\node;
 interface NodeInterface
 {
 
-    public function isNegated(): bool;
     public function getKey(): string;
     public function getValue(): bool;
     public function getExpiry(): int;

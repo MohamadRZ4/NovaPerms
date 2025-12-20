@@ -29,6 +29,31 @@ class UserManager
         return $this->users[strtolower($name)] ?? null;
     }
 
+    public function getOrLoadUser(string $name, callable $consumer): void
+    {
+        $name = strtolower($name);
+
+        if (isset($this->users[$name])) {
+            $user = $this->users[$name];
+            $consumer($user);
+            return;
+        }
+
+        $this->loadUser($name)->onCompletion(
+            function (User $user) use ($name, $consumer) {
+                $this->users[$name] = $user;
+                $user->setIsInitialized(true);
+
+                $consumer($user);
+            },
+            function () use ($name) {
+                Server::getInstance()->getLogger()->warning(
+                    "Failed to load user {$name}"
+                );
+            }
+        );
+    }
+
     public function modifyUser(string $name, callable $consumer): void
     {
         $name = strtolower($name);
@@ -40,7 +65,7 @@ class UserManager
             return;
         }
 
-        NovaPermsPlugin::getStorage()->loadUser($name)->onCompletion(
+        $this->loadUser($name)->onCompletion(
             function (User $user) use ($name, $consumer) {
                 $this->users[$name] = $user;
                 $user->setIsInitialized(true);

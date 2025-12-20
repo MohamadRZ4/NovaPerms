@@ -37,7 +37,6 @@ final class NodeDeserializer
 
             $value   = $permission["value"] ?? true;
             $expire  = $permission["expire"] ?? null;
-            $negated = $permission["negated"] ?? false;
 
             $parts = explode(".", $name);
             $node  = null;
@@ -88,8 +87,7 @@ final class NodeDeserializer
                 $node = PermissionNode::builder($name);
             }
 
-            $node->value((bool)$value)
-                ->negated((bool)$negated);
+            $node->value((bool)$value);
 
             if ($expire !== null) {
                 $node->expiry((int)$expire);

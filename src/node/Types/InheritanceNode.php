@@ -14,11 +14,10 @@ class InheritanceNode extends AbstractNode
         string $group,
         ?ContextSet $contextSet = null,
         bool $value = true,
-        int $expiry = -1,
-        bool $negated = false
+        int $expiry = -1
 
     ) {
-        parent::__construct("group.{$group}", $contextSet, $value, $expiry, $negated);
+        parent::__construct("group.{$group}", $contextSet, $value, $expiry);
         $this->group = $group;
     }
 
@@ -59,8 +58,7 @@ class InheritanceNodeBuilder extends AbstractNodeBuilder
             $this->group,
             $this->contextSet,
             $this->value,
-            $this->expiry,
-            $this->negated
+            $this->expiry
         );
     }
 }

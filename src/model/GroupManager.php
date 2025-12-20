@@ -30,7 +30,7 @@ class GroupManager {
         return $this->groups[$name] ?? $this->groups[$name] = new Group($name);
     }
 
-    public function getGroup($name): ?Group
+    public function getIfLoaded($name): ?Group
     {
         return $this->groups[strtolower($name)] ?? null;
     }

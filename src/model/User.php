@@ -89,6 +89,11 @@ class User extends PermissionHolder
         return $this->attachment;
     }
 
+    public function primaryGroupCalculation(): void
+    {
+        $calculation = NovaPermsPlugin::getConfigManager()->getPrimaryGroupCalculation();
+
+    }
 
     public function updatePermissions(): void
     {
