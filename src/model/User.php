@@ -2,8 +2,9 @@
 
 namespace MohamadRZ\NovaPerms\model;
 
+use MohamadRZ\NovaPerms\graph\PermissionResolver;
+use MohamadRZ\NovaPerms\graph\ResolverConfig;
 use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\resolver\NodePermissionResolver;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use pocketmine\permission\PermissionManager;
@@ -24,6 +25,7 @@ class User extends PermissionHolder
 
     /** @var PermissionAttachment|null */
     private ?PermissionAttachment $attachment = null;
+    private PrimaryGroupHolder $primaryGroup;
 
     public function setIsInitialized(bool $isInitialized): void
     {
@@ -49,6 +51,7 @@ class User extends PermissionHolder
     public function __construct(string $playerName)
     {
         $this->name = $playerName;
+        $this->primaryGroup = PrimaryGroupFactory::create($this);
     }
 
     public function getName(): string
@@ -65,6 +68,14 @@ class User extends PermissionHolder
     public function getGroups(): array
     {
         return $this->groups;
+    }
+
+    /**
+     * @return PrimaryGroupHolder
+     */
+    public function getPrimaryGroup(): PrimaryGroupHolder
+    {
+        return $this->primaryGroup;
     }
 
     public function addGroup(string $groupName): void
@@ -89,12 +100,6 @@ class User extends PermissionHolder
         return $this->attachment;
     }
 
-    public function primaryGroupCalculation(): void
-    {
-        $calculation = NovaPermsPlugin::getConfigManager()->getPrimaryGroupCalculation();
-
-    }
-
     public function updatePermissions(): void
     {
         $this->runWhenInitialized(function() {
@@ -105,6 +110,7 @@ class User extends PermissionHolder
             $groupManager = NovaPermsPlugin::getGroupManager();
             $groupPermissionsMap = [];
             $groupInheritanceMap = [];
+            $primaryGroup = $this->getPrimaryGroup()->getStoredValue();
 
             foreach ($groupManager->getAllGroups() as $group) {
                 $groupName = $group->getName();
@@ -120,15 +126,21 @@ class User extends PermissionHolder
 
             $rootNodes = $this->getOwnPermissionNodes();
 
-            $resolver = new NodePermissionResolver(
+            $resolver = new PermissionResolver(
                 $rootNodes,
                 $groupPermissionsMap,
                 $groupInheritanceMap,
                 NovaPermsPlugin::getAllKnownPermissions(),
-                $this->getName()
+                $primaryGroup,
+                ResolverConfig::permissionsOnly()
             );
 
-            $resolver->resolve();
+            $resolver->resolve(function($permissions) use ($attachment) {
+                $attachment->clearPermissions();
+                foreach ($permissions as $perm => $value) {
+                    $attachment->setPermission($perm, $value);
+                }
+            });
         });
     }
 
