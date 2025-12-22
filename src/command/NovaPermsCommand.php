@@ -13,10 +13,12 @@ use MohamadRZ\NovaPerms\bulkupdate\UpdatePrimaryGroupAction;
 use MohamadRZ\NovaPerms\model\Group;
 use MohamadRZ\NovaPerms\model\GroupManager;
 use MohamadRZ\NovaPerms\model\PermissionHolder;
+use MohamadRZ\NovaPerms\model\TemporaryNodeMergeStrategy;
 use MohamadRZ\NovaPerms\model\User;
 use MohamadRZ\NovaPerms\node\Node;
 use MohamadRZ\NovaPerms\node\serialize\NodeDeserializer;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
+use MohamadRZ\NovaPerms\node\Types\PermissionNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use MohamadRZ\NovaPerms\utils\Duration;
 use pocketmine\command\Command;
@@ -74,7 +76,7 @@ class NovaPermsCommand extends Command
                 $onlyGroup = reset($groups);
                 if (
                     $onlyGroup->getName() === GroupManager::DEFAULT_GROUP &&
-                    count($onlyGroup->getOwnPermissionNodes()) === 0
+                    count($onlyGroup->getOwnNodes()) === 0
                 ) {
                     $pluginName = NovaPermsPlugin::getInstance()->getDescription()->getName();
                     $version = NovaPermsPlugin::getInstance()->getDescription()->getVersion();
@@ -213,12 +215,12 @@ class NovaPermsCommand extends Command
 
             /* ================= INFO ================= */
             case "info":
-                $loader(function ($holder) use ($sender, $args) {
+                $loader(function (Group|User $holder) use ($sender, $args) {
                     $page = array_shift($args) ?? null;
                     if ($page === null) $page = 1;
                     $name = strtolower($holder->getName());
 
-                    $allPermissions = array_values($holder->getPermissions());
+                    $allPermissions = array_values($holder->getNodes());
 
                     $perPage = 10;
                     $permsCount = count($allPermissions);
@@ -278,7 +280,7 @@ class NovaPermsCommand extends Command
                 break;
 
             case "set":
-                $loader(function ($holder) use ($sender, $args) {
+                $loader(function (Group|User $holder) use ($sender, $args) {
                     $node = array_shift($args);
                     if ($node === null) {
                         $sender->sendMessage("error 4");
@@ -290,20 +292,20 @@ class NovaPermsCommand extends Command
                         $value = strtolower(array_shift($args)) === 'true';
                     }
 
-                    $holder->addPermission($node, $value);
+                    $holder->setNode(PermissionNode::builder($node)->build(), $value);
                     $sender->sendMessage("Permission '$node' set to " . ($value ? "true" : "false"));
                 });
                 break;
 
             case "unset":
-                $loader(function ($holder) use ($sender, $args) {
+                $loader(function (Group|User $holder) use ($sender, $args) {
                     $node = array_shift($args);
                     if ($node === null) {
                         $sender->sendMessage("§cNo node specified.");
                         return;
                     }
 
-                    if ($holder->removePermission($node)) {
+                    if ($holder->unsetNode(PermissionNode::builder($node)->build())) {
                         $sender->sendMessage("§aPermission '$node' unset.");
                     } else {
                         $sender->sendMessage("§cPermission '$node' not found.");
@@ -313,7 +315,7 @@ class NovaPermsCommand extends Command
 
             /* ================= SETTEMP ================= */
             case "settemp":
-                $loader(function ($holder) use ($sender, $args) {
+                $loader(function (Group|User $holder) use ($sender, $args) {
                     $node = array_shift($args);
                     if ($node === null) {
                         $sender->sendMessage("§cError: No node specified.");
@@ -332,12 +334,16 @@ class NovaPermsCommand extends Command
                     }
 
                     $seconds = Duration::fromString($durationStr)->getSeconds();
-                    $modifier = array_shift($args) ?? 'replace';
-                    if (!in_array($modifier, ['accumulate', 'replace', 'deny'], true)) {
-                        $modifier = 'replace';
+                    $modifier = array_shift($args) ?? TemporaryNodeMergeStrategy::REPLACE;
+                    if (!in_array($modifier, [
+                        TemporaryNodeMergeStrategy::REPLACE,
+                        TemporaryNodeMergeStrategy::ACCUMULATE,
+                        TemporaryNodeMergeStrategy::DENY
+                    ], true)) {
+                        $modifier = TemporaryNodeMergeStrategy::REPLACE;
                     }
 
-                    if ($holder->setTempPermission($holder, $node, $value, $seconds, $modifier)) {
+                    if ($holder->setTempNode($holder, PermissionNode::builder($node)->expiry($durationStr)->build(), $modifier)) {
                         $sender->sendMessage(
                             "§aTemporary permission '$node' set to " .
                             ($value ? "true" : "false") .
@@ -351,36 +357,65 @@ class NovaPermsCommand extends Command
 
             /* ================= UNSETTEMP ================= */
             case "unsettemp":
-                $loader(function ($holder) use ($sender, $args) {
-                    $node = array_shift($args);
-                    if ($node === null) {
-                        $sender->sendMessage("§cError: No node specified.");
+                $loader(function (Group|User $holder) use ($sender, $args) {
+
+                    $nodeName = array_shift($args);
+                    if ($nodeName === null || $nodeName === "") {
+                        $sender->sendMessage("§cError: No permission specified.");
                         return;
                     }
 
-                    $durationStr = array_shift($args);
-                    $seconds = $durationStr !== null
-                        ? Duration::fromString($durationStr)->getSeconds()
-                        : null;
+                    $durationStr = $args[0] ?? null;
+                    $durationSeconds = null;
 
-                    if ($holder->unsetTempPermission($holder, $node, $seconds)) {
-                        $sender->sendMessage("§aTemporary permission '$node' unset.");
+                    if ($durationStr !== null) {
+                        try {
+                            $durationSeconds = Duration::fromString($durationStr)->getSeconds();
+                            array_shift($args);
+                        } catch (\Throwable $e) {
+                            $sender->sendMessage("§cInvalid duration format.");
+                            return;
+                        }
+                    }
+
+                    $node = PermissionNode::builder($nodeName)
+                        ->expiry(10)
+                        ->build();
+
+                    $changed = $holder->unsetTempNode(
+                        $holder,
+                        $node,
+                        $durationSeconds
+                    );
+
+                    if ($changed) {
+                        if ($durationSeconds !== null) {
+                            $sender->sendMessage(
+                                "§aTemporary permission '$nodeName' shortened by {$durationStr}."
+                            );
+                        } else {
+                            $sender->sendMessage(
+                                "§aTemporary permission '$nodeName' removed."
+                            );
+                        }
                     } else {
-                        $sender->sendMessage("§cPermission '$node' not found.");
+                        $sender->sendMessage(
+                            "§cTemporary permission '$nodeName' not found."
+                        );
                     }
                 });
                 break;
 
             /* ================= CHECK ================= */
             case "check":
-                $loader(function ($holder) use ($sender, $args) {
+                $loader(function (Group|User $holder) use ($sender, $args) {
                     $node = array_shift($args);
                     if ($node === null) {
                         $sender->sendMessage("§cError: No node specified.");
                         return;
                     }
 
-                    $perm = $holder->findPermissionNode($node);
+                    $perm = $holder->findNode($node);
                     if ($perm !== null) {
                         $sender->sendMessage(
                             "§aPermission '$node' is " .
@@ -394,13 +429,13 @@ class NovaPermsCommand extends Command
 
             /* ================= CLEAR ================= */
             case "clear":
-                $loader(function ($holder) use ($sender) {
-                    if (empty($holder->getOwnPermissionNodes())) {
+                $loader(function (Group|User $holder) use ($sender) {
+                    if (empty($holder->getOwnNodes())) {
                         $sender->sendMessage("§eNo permissions to clear.");
                         return;
                     }
 
-                    $holder->setPermissions([]);
+                    $holder->setNodes([]);
                     $sender->sendMessage("§aAll permissions cleared.");
                 });
                 break;
@@ -547,7 +582,7 @@ class NovaPermsCommand extends Command
                         return;
                     }
 
-                    if ($holder->removePermission($node)) {
+                    if ($holder->unsetNode($node)) {
                         $sender->sendMessage("§aParent '$node' unset.");
                     } else {
                         $sender->sendMessage("§cParent '$node' not found.");

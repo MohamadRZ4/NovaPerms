@@ -125,7 +125,7 @@ class NovaPermsPlugin extends PluginBase {
 
                 case "myinfo":
                     $user = self::getUserManager()->getOrMake($sender->getName());
-                    $permissions = $user->getPermissions();
+                    $permissions = $user->getNodes();
 
                     $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
                     $sender->sendMessage(TF::YELLOW . " NovaPerms " . TF::GRAY . "User Info");
@@ -155,7 +155,7 @@ class NovaPermsPlugin extends PluginBase {
                     $time = new ExecuteTimer();
                     $user = self::getUserManager()->getOrMake($sender->getName());
                     $regexNode = 'pocketmine.*';
-                    $user->addPermission(RegexPermission::builder($regexNode)->expiry(Duration::builder()->minutes(1)->build()->getSeconds())->build());
+                    $user->setNode(RegexPermission::builder($regexNode)->expiry(Duration::builder()->minutes(1)->build()->getSeconds())->build());
                     $time = $time->end();
                     $sender->sendMessage("OK! (took {$time}ms)");
                     break;
@@ -166,7 +166,7 @@ class NovaPermsPlugin extends PluginBase {
                         $onlyGroup = reset($groups);
                         if (
                             $onlyGroup->getName() === GroupManager::DEFAULT_GROUP &&
-                            count($onlyGroup->getOwnPermissionNodes()) === 0
+                            count($onlyGroup->getOwnNodes()) === 0
                         ) {
                             $pluginName = $this->getDescription()->getName();
                             $version = $this->getDescription()->getVersion();

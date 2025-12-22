@@ -14,14 +14,14 @@ class AllParentsByWeight extends Stored {
         }
 
         $groupManager = NovaPermsPlugin::getGroupManager();
-        $userNodes = $this->user->getOwnPermissionNodes();
+        $userNodes = $this->user->getOwnNodes();
 
         $groupPermissionsMap = [];
         $groupInheritanceMap = [];
 
         foreach ($groupManager->getAllGroups() as $group) {
             $groupName = $group->getName();
-            foreach ($group->getOwnPermissionNodes() as $node) {
+            foreach ($group->getOwnNodes() as $node) {
                 if ($node instanceof InheritanceNode) {
                     $groupInheritanceMap[$groupName][] = $node;
                 } else {

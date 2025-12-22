@@ -84,7 +84,7 @@ class UserManager
 
     public function inNonDefaultUser(User $user): bool
     {
-        $nodes = $user->getOwnPermissionNodes();
+        $nodes = $user->getOwnNodes();
         if (count($nodes) === 1) {
             foreach ($nodes as $node) {
                 if ($node instanceof InheritanceNode) {

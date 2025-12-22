@@ -46,12 +46,12 @@ class GroupManager {
         $group = $this->getOrMake($name);
 
         if ($weight !== -1) {
-            $group->addPermission(WeightNode::builder($weight)->build());
+            $group->setNode(WeightNode::builder($weight)->build());
         }
 
         if ($displayName !== null) {
             $displayName = trim($displayName);
-            $group->addPermission(DisplayNameNode::builder($displayName)->build());
+            $group->setNode(DisplayNameNode::builder($displayName)->build());
         }
 
         $this->registerGroup($group);
@@ -98,7 +98,7 @@ class GroupManager {
             $changed = false;
             foreach ($group->getInheritances() as $node) {
                 if (strtolower($node->getGroup()) === $groupName) {
-                    $group->removePermission($node);
+                    $group->unsetNode($node);
                     $changed = true;
                 }
             }

@@ -36,7 +36,7 @@ class Storage implements IStorage
             "sqlite" => "schema/sqlite.sql",
             "mysql" => "schema/mysql.sql"
         ]);
- 
+
         foreach (['users', 'groups', 'user_permissions', 'group_permissions'] as $table) {
             $this->database->executeGeneric("init.{$table}");
             $this->database->waitAll();
@@ -84,12 +84,12 @@ class Storage implements IStorage
                     $nodes = $this->rowsToNodes($rows);
                     $perm = [];
                     foreach ($nodes as $node) $perm[$node->getKey()] = $node;
-                    $user->setPermissions($perm);
+                    $user->setNodes($perm);
 
                     $primaryGroupName = $user->getPrimaryGroup()->getStoredValue();
                     if ($primaryGroupName && !isset($perm["group.{$primaryGroupName}"])) {
                         $inheritNode = InheritanceNode::builder($primaryGroupName)->build();
-                        $user->addPermission($inheritNode);
+                        $user->setNode($inheritNode);
                     }
                 }
 
@@ -104,7 +104,7 @@ class Storage implements IStorage
     public function saveUser(User $user): Promise
     {
         $resolver = new PromiseResolver();
-        $serialized = NodeSerializer::serialize($user->getOwnPermissionNodes());
+        $serialized = NodeSerializer::serialize($user->getOwnNodes());
 
         $queries = [
             "INSERT OR REPLACE INTO Users(username, primary_group) VALUES (:username, :primary_group)",
@@ -180,7 +180,7 @@ class Storage implements IStorage
                     $nodes = $this->rowsToNodes($rows);
                     $perm = [];
                     foreach ($nodes as $node) $perm[$node->getKey()] = $node;
-                    $group->setPermissions($perm);
+                    $group->setNodes($perm);
                 }
 
                 $resolver->resolve($group);
@@ -194,7 +194,7 @@ class Storage implements IStorage
     public function saveGroup(Group $group): Promise
     {
         $resolver = new PromiseResolver();
-        $serialized = NodeSerializer::serialize($group->getOwnPermissionNodes());
+        $serialized = NodeSerializer::serialize($group->getOwnNodes());
 
         $queries = [
             "INSERT OR IGNORE INTO Groups(name) VALUES (:name)",
@@ -255,7 +255,7 @@ class Storage implements IStorage
                     $nodes = $this->rowsToNodes($groupRows);
                     $perm = [];
                     foreach ($nodes as $node) $perm[$node->getKey()] = $node;
-                    $group->setPermissions($perm);
+                    $group->setNodes($perm);
                     NovaPermsPlugin::getGroupManager()->registerGroup($group);
                 }
 
@@ -315,7 +315,7 @@ class Storage implements IStorage
     {
         $resolver = new PromiseResolver();
         $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
-        $group->setPermissions($nodes);
+        $group->setNodes($nodes);
 
         $this->saveGroup($group)->onCompletion(
             fn() => $resolver->resolve($group),

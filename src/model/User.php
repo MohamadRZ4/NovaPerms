@@ -117,7 +117,7 @@ class User extends PermissionHolder
             foreach ($groupManager->getAllGroups() as $group) {
                 $groupName = $group->getName();
 
-                foreach ($group->getOwnPermissionNodes() as $node) {
+                foreach ($group->getOwnNodes() as $node) {
                     if ($node instanceof InheritanceNode) {
                         $groupInheritanceMap[$groupName][] = $node;
                     } else {
@@ -126,7 +126,7 @@ class User extends PermissionHolder
                 }
             }
 
-            $rootNodes = $this->getOwnPermissionNodes();
+            $rootNodes = $this->getOwnNodes();
 
             $resolver = new PermissionResolver(
                 $rootNodes,
@@ -146,17 +146,17 @@ class User extends PermissionHolder
         });
     }
 
-    public function addPermission(Node $node, bool $value = true): void
+    public function setNode(Node $node, bool $value = true): void
     {
         $this->runWhenInitialized(function() use ($node, $value) {
-            parent::addPermission($node, $value);
+            parent::setNode($node, $value);
             $this->updatePermissions();
         });
     }
 
-    public function removePermission(Node $node): bool
+    public function unsetNode(Node $node): bool
     {
-        $isChanged = parent::removePermission($node);
+        $isChanged = parent::unsetNode($node);
         if ($isChanged) {
             $this->runWhenInitialized(function() {
                 $this->updatePermissions();

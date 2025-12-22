@@ -11,31 +11,27 @@ use pocketmine\permission\PermissionManager;
 
 abstract class PermissionHolder
 {
-    private array $permissions = [];
+    private array $nodes = [];
     /** @var InheritanceNode[] */
     protected array $inheritances = [];
 
     // ==================== Permission Management ====================
 
-    public function addPermission(Node $node, bool $value = true): void
+    public function setNode(Node $node): void
     {
-        $node = $node->toBuilder()
-            ->value($value)
-            ->build();
-
         if ($node instanceof InheritanceNode) {
             $this->addInheritance($node);
         }
 
         $storageKey = $this->makeStorageKey($node);
-        $this->permissions[$storageKey] = $node;
+        $this->nodes[$storageKey] = $node;
     }
 
-    public function removePermission(Node $node): bool
+    public function unsetNode(Node $node): bool
     {
         $removed = false;
 
-        foreach ($this->permissions as $key => $existing) {
+        foreach ($this->nodes as $key => $existing) {
             if (
                 $existing->getKey() === $node->getKey() &&
                 $existing->getExpiry() === -1
@@ -44,7 +40,7 @@ abstract class PermissionHolder
                     $this->removeInheritance($existing);
                 }
 
-                unset($this->permissions[$key]);
+                unset($this->nodes[$key]);
                 $removed = true;
             }
         }
@@ -52,61 +48,56 @@ abstract class PermissionHolder
         return $removed;
     }
 
-    public function setTempPermission(
+    public function setTempNode(
         User|Group                 $holder,
         Node                       $node,
-        bool                       $value = true,
-        int                        $durationSeconds = 3600,
         TemporaryNodeMergeStrategy $modifier = TemporaryNodeMergeStrategy::REPLACE
     ): bool {
-        $now = time();
-        $expiry = $now + $durationSeconds;
 
-        $builder = $node->toBuilder()
-            ->value($value);
+        $nodeExpiry = $node->getExpiry();
+
+        if ($nodeExpiry === -1) {
+            throw new \InvalidArgumentException(
+                "Temporary node must have an expiry set"
+            );
+        }
 
         $existingNode = null;
 
-        foreach ($this->getOwnPermissionNodes() as $existing) {
+        foreach ($this->getOwnNodes() as $existing) {
             if ($existing->getKey() === $node->getKey()) {
                 $existingNode = $existing;
                 break;
             }
         }
 
+        $builder = $node->toBuilder();
+
         switch ($modifier) {
 
             case TemporaryNodeMergeStrategy::ACCUMULATE:
-                if ($existingNode) {
-                    $oldExpiry = $existingNode->getExpiry() !== -1
-                        ? $existingNode->getExpiry()
-                        : $expiry;
-
-                    $builder->expiry($oldExpiry + $durationSeconds);
-                } else {
-                    $builder->expiry($expiry);
+                if ($existingNode && $existingNode->getExpiry() !== -1) {
+                    $builder->expiry(
+                        $existingNode->getExpiry() +
+                        ($nodeExpiry - time())
+                    );
                 }
                 break;
 
             case TemporaryNodeMergeStrategy::REPLACE:
-                if ($existingNode) {
-                    $oldExpiry = $existingNode->getExpiry() !== -1
-                        ? $existingNode->getExpiry()
-                        : $expiry;
-
-                    $builder->expiry(max($expiry, $oldExpiry));
-                    $this->removePermission($existingNode);
-                } else {
-                    $builder->expiry($expiry);
+                if ($existingNode && $existingNode->getExpiry() !== -1) {
+                    $builder->expiry(
+                        max($nodeExpiry, $existingNode->getExpiry())
+                    );
+                    $this->unsetNode($existingNode);
                 }
                 break;
 
             case TemporaryNodeMergeStrategy::DENY:
-                $builder->expiry($expiry);
                 break;
         }
 
-        $this->addPermission($builder->build());
+        $this->setNode($builder->build());
 
         if ($holder instanceof User) {
             $holder->updatePermissions();
@@ -115,7 +106,7 @@ abstract class PermissionHolder
         return true;
     }
 
-    public function unsetTempPermission(
+    public function unsetTempNode(
         User|Group $holder,
         Node       $node,
         ?int       $durationSeconds = null
@@ -123,7 +114,7 @@ abstract class PermissionHolder
         $now = time();
         $changed = false;
 
-        foreach ($holder->getOwnPermissionNodes() as $existing) {
+        foreach ($holder->getOwnNodes() as $existing) {
 
             if ($existing->getKey() !== $node->getKey()) {
                 continue;
@@ -134,7 +125,7 @@ abstract class PermissionHolder
             }
 
             if ($durationSeconds === null) {
-                $holder->removePermission($existing);
+                $holder->unsetNode($existing);
                 $changed = true;
                 continue;
             }
@@ -142,14 +133,14 @@ abstract class PermissionHolder
             $newExpiry = $existing->getExpiry() - $durationSeconds;
 
             if ($newExpiry <= $now) {
-                $holder->removePermission($existing);
+                $holder->unsetNode($existing);
             } else {
                 $newNode = $existing->toBuilder()
                     ->expiry($newExpiry)
                     ->build();
 
-                $holder->removePermission($existing);
-                $holder->addPermission($newNode);
+                $holder->unsetNode($existing);
+                $holder->setNode($newNode);
             }
 
             $changed = true;
@@ -162,11 +153,11 @@ abstract class PermissionHolder
         return $changed;
     }
 
-    public function findPermissionNode(Node|string $nodeInput): ?Node
+    public function findNode(Node|string $nodeInput): ?Node
     {
         $key = $nodeInput instanceof Node ? $nodeInput->getKey() : $nodeInput;
 
-        foreach ($this->getOwnPermissionNodes() as $node) {
+        foreach ($this->getOwnNodes() as $node) {
             if ($node->getKey() === $key) {
                 return $node;
             }
@@ -189,7 +180,7 @@ abstract class PermissionHolder
         $changed = false;
         $now = time();
 
-        foreach ($this->getOwnPermissionNodes() as $node) {
+        foreach ($this->getOwnNodes() as $node) {
             if ($node->getExpiry() === -1) {
                 continue;
             }
@@ -198,7 +189,7 @@ abstract class PermissionHolder
                 continue;
             }
 
-            $this->removePermission($node);
+            $this->unsetNode($node);
             $changed = true;
         }
 
@@ -210,22 +201,22 @@ abstract class PermissionHolder
     /**
      * @return array<string, Node>
      */
-    public function getPermissions(): array
+    public function getNodes(): array
     {
-        return $this->permissions;
+        return $this->nodes;
     }
 
     /**
      * @return Node[]
      */
-    public function getOwnPermissionNodes(): array
+    public function getOwnNodes(): array
     {
-        return array_values($this->permissions);
+        return array_values($this->nodes);
     }
 
-    public function setPermissions(array $permissions): void
+    public function setNodes(array $nodes): void
     {
-        $this->permissions = $permissions;
+        $this->nodes = $nodes;
     }
 
     // ==================== Inheritance Management ====================
