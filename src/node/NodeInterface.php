@@ -12,6 +12,6 @@ interface NodeInterface
     public function toNodeString(): string;
     public function getType(): string;
 
-    /** @return AbstractNodeBuilder */
+    /** @return NodeBuilder */
     public function toBuilder();
 }

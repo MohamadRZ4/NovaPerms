@@ -9,6 +9,7 @@ use MohamadRZ\NovaPerms\node\Types\WeightNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use pocketmine\promise\Promise;
 use pocketmine\promise\PromiseResolver;
+use pocketmine\Server;
 
 class GroupManager {
     const DEFAULT_GROUP = "default";
@@ -17,10 +18,6 @@ class GroupManager {
 
     public function init()
     {
-/*        NovaPermsPlugin::getStorage()->loadAllGroup();
-        if (!$this->getGroup(self::DEFAULT_GROUP)) {
-            NovaPermsPlugin::getStorage()->createAndLoadGroup(self::DEFAULT_GROUP);
-        }*/
         $this->createGroup(self::DEFAULT_GROUP);
     }
 

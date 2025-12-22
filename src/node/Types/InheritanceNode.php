@@ -3,10 +3,10 @@
 namespace MohamadRZ\NovaPerms\node\Types;
 
 use MohamadRZ\NovaPerms\context\ContextSet;
-use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
+use MohamadRZ\NovaPerms\node\Node;
+use MohamadRZ\NovaPerms\node\NodeBuilder;
 
-class InheritanceNode extends AbstractNode
+class InheritanceNode extends Node
 {
     private string $group;
 
@@ -44,7 +44,7 @@ class InheritanceNode extends AbstractNode
     }
 }
 
-class InheritanceNodeBuilder extends AbstractNodeBuilder
+class InheritanceNodeBuilder extends NodeBuilder
 {
     private string $group;
     public function __construct(string $group) {

@@ -3,10 +3,10 @@
 namespace MohamadRZ\NovaPerms\node\Types;
 
 use MohamadRZ\NovaPerms\context\ContextSet;
-use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
+use MohamadRZ\NovaPerms\node\Node;
+use MohamadRZ\NovaPerms\node\NodeBuilder;
 
-class SuffixNode extends AbstractNode
+class SuffixNode extends Node
 {
     private string $suffix;
     private int $priority;
@@ -42,7 +42,7 @@ class SuffixNode extends AbstractNode
     }
 }
 
-class SuffixNodeBuilder extends AbstractNodeBuilder
+class SuffixNodeBuilder extends NodeBuilder
 {
     private string $suffix;
     private int $priority;

@@ -3,12 +3,12 @@
 namespace MohamadRZ\NovaPerms\node\serialize;
 
 use MohamadRZ\NovaPerms\context\serialize\ContextSerializer;
-use MohamadRZ\NovaPerms\node\AbstractNode;
+use MohamadRZ\NovaPerms\node\Node;
 
 final class NodeSerializer
 {
     /**
-     * @param AbstractNode[] $nodes
+     * @param Node[] $nodes
      * @return array
      */
     public static function serialize(array $nodes): array

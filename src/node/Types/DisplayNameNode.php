@@ -3,10 +3,10 @@
 namespace MohamadRZ\NovaPerms\node\Types;
 
 use MohamadRZ\NovaPerms\context\ContextSet;
-use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
+use MohamadRZ\NovaPerms\node\Node;
+use MohamadRZ\NovaPerms\node\NodeBuilder;
 
-class DisplayNameNode extends AbstractNode
+class DisplayNameNode extends Node
 {
     private string $displayName;
 
@@ -43,7 +43,7 @@ class DisplayNameNode extends AbstractNode
             ->contextSet($this->contextSet);
     }
 }
-class DisplayNameNodeBuilder extends AbstractNodeBuilder
+class DisplayNameNodeBuilder extends NodeBuilder
 {
     private string $displayName;
 

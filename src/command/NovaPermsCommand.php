@@ -2,26 +2,41 @@
 
 namespace MohamadRZ\NovaPerms\command;
 
+use MohamadRZ\NovaPerms\bulkupdate\action\DeleteAction;
+use MohamadRZ\NovaPerms\bulkupdate\action\UpdateAction;
+use MohamadRZ\NovaPerms\bulkupdate\BulkUpdateBuilder;
+use MohamadRZ\NovaPerms\bulkupdate\BulkUpdateField;
+use MohamadRZ\NovaPerms\bulkupdate\BulkUpdateStatistics;
+use MohamadRZ\NovaPerms\bulkupdate\Comparison;
+use MohamadRZ\NovaPerms\bulkupdate\DataType;
+use MohamadRZ\NovaPerms\bulkupdate\UpdatePrimaryGroupAction;
+use MohamadRZ\NovaPerms\model\Group;
 use MohamadRZ\NovaPerms\model\GroupManager;
+use MohamadRZ\NovaPerms\model\PermissionHolder;
 use MohamadRZ\NovaPerms\model\User;
-use MohamadRZ\NovaPerms\node\AbstractNode;
+use MohamadRZ\NovaPerms\node\Node;
 use MohamadRZ\NovaPerms\node\serialize\NodeDeserializer;
+use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use MohamadRZ\NovaPerms\utils\Duration;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
+use pocketmine\console\ConsoleCommandSender;
 use pocketmine\lang\Language;
+use pocketmine\scheduler\Task;
 use pocketmine\utils\TextFormat as TF;
 
 class NovaPermsCommand extends Command
 {
     public const PREFIX = "§7[§l§bN§3P§4§r§7]§r";
+    private BulkUpdateHandler $bulkUpdateHandler;
 
     public function __construct(string $name)
     {
+        parent::__construct($name);
         $this->setAliases(["np", "perms", "permission", "permissions"]);
         $this->setPermission("novaperms.use");
-        parent::__construct($name);
+        $this->bulkUpdateHandler = new BulkUpdateHandler();
     }
 
     /**
@@ -41,6 +56,10 @@ class NovaPermsCommand extends Command
                     break;
                 case "deletegroup":
                     $this->deleteGroupHandler($sender, $args);
+                    break;
+                case "bulkupdate":
+                    $this->bulkUpdateHandler->bulkUpdateHandler($sender, $args);
+                    break;
                 case "user":
                     $this->userHandler($sender, $args);
                     break;
@@ -103,6 +122,29 @@ class NovaPermsCommand extends Command
         NovaPermsPlugin::getGroupManager()->deleteGroup($name)->onCompletion(
             function () use ($sender, $name) {
                 $sender->sendMessage("successfully \"$name\" deleting.");
+
+                $operation = BulkUpdateBuilder::create()
+                    ->trackStatistics(true)
+                    ->dataType(DataType::ALL)
+                    ->action(DeleteAction::create())
+                    ->filter(BulkUpdateField::PERMISSION, Comparison::EQUAL, InheritanceNode::builder($name)->build()->getKey())
+                    ->build();
+
+                NovaPermsPlugin::getInstance()->getStorage()->applyBulkUpdate($operation)
+                    ->onCompletion(
+                        function(BulkUpdateStatistics $stats) use ($name) {
+                            if ($stats->executionTime > 0) {
+                                NovaPermsPlugin::getInstance()->getLogger()->info(
+                                    "Deleted group '{$name}' inheritance from {$stats->getTotalAffected()} holders in {$stats->executionTime}s"
+                                );
+                            }
+                        },
+                        function() use ($name) {
+                            NovaPermsPlugin::getInstance()->getLogger()->error(
+                                "Failed to delete group '{$name}' inheritance"
+                            );
+                        }
+                    );
             },
             function () use ($sender, $name) {
                 $sender->sendMessage("Error group \"$name\" not found or not loaded");
@@ -200,13 +242,15 @@ class NovaPermsCommand extends Command
                     );
 
                     foreach ($permissions as $node) {
+                        if ($node instanceof InheritanceNode) {
+                            continue;
+                        }
 
                         $valueColor = $node->getValue() ? TF::GREEN : TF::RED;
                         $permName = $node->getKey();
 
                         $sender->sendMessage(
-                            TF::GRAY . "> " .
-                            $valueColor . $permName
+                            TF::DARK_AQUA . "> " . $valueColor . $permName
                         );
 
                         $expiry = $node->getExpiry();
@@ -366,7 +410,8 @@ class NovaPermsCommand extends Command
     public function parentHandler(
         CommandSender $sender,
         array $args,
-        string $target
+        string $target,
+        string $type // user | group
     ): void
     {
         $sub = array_shift($args);
@@ -391,8 +436,185 @@ class NovaPermsCommand extends Command
         };
 
         switch (strtolower($sub)) {
-            case "":
+            case "info":
+                $loader(function ($holder) use ($sender, $args) {
+                    /* @var $holder PermissionHolder*/
+                    $page = array_shift($args) ?? null;
+                    if ($page === null) $page = 1;
+                    $name = strtolower($holder->getName());
+
+                    $allPermissions = array_values($holder->getInheritances());
+
+                    $perPage = 10;
+                    $permsCount = count($allPermissions);
+                    $pages = max(1, (int)ceil($permsCount / $perPage));
+
+                    $page = max(1, min($page, $pages));
+
+                    $offset = ($page - 1) * $perPage;
+                    $permissions = array_slice($allPermissions, $offset, $perPage);
+
+                    $p = NovaPermsPlugin::PREFIX;
+
+                    if (empty($permissions)) {
+                        $sender->sendMessage($p . " §b$name §adoes not have any permissions set.");
+                        return;
+                    }
+
+                    $sender->sendMessage(
+                        $p . " §b{$name}'s Parents: " .
+                        "§7(page §f$page §7of §f$pages §7- §f$permsCount §7entries)"
+                    );
+
+                    foreach ($permissions as $node) {
+
+                        $valueColor = $node->getValue() ? TF::GREEN : TF::RED;
+                        $permName = $node->getKey();
+
+                        $sender->sendMessage(
+                            TF::DARK_AQUA . "> " . $valueColor . $permName
+                        );
+
+                        $expiry = $node->getExpiry();
+
+                        if ($expiry !== -1) {
+
+                            if ($expiry <= time()) {
+                                $sender->sendMessage(
+                                    TF::DARK_GRAY . "-    " .
+                                    TF::RED . "expired"
+                                );
+                            } else {
+                                $sender->sendMessage(
+                                    TF::DARK_GRAY . "-    " .
+                                    TF::DARK_GREEN .
+                                    "expires in " .
+                                    Duration::betweenNowAnd($expiry)->format()
+                                );
+                            }
+                        }
+                    }
+
+                    $sender->sendMessage(TF::GOLD . str_repeat("-", 30));
+                });
+                break;
+            case "add":
+                $loader(function ($holder) use ($sender, $args) {
+                    $node = array_shift($args);
+                    if ($node === null) {
+                        $sender->sendMessage("error 4");
+                        return;
+                    }
+
+                    $value = true;
+                    if (!empty($args) && in_array(strtolower($args[0]), ['true', 'false'], true)) {
+                        $value = strtolower(array_shift($args)) === 'true';
+                    }
+
+                    $group = NovaPermsPlugin::getGroupManager()->getIfLoaded($node);
+                    if (!$group instanceof Group) {
+                        $sender->sendMessage("target group not found");
+                        return;
+                    }
+
+                    if($holder instanceof Group && $holder->getName() === strtolower($node)) {
+                        $sender->sendMessage("A group cannot be its own parent.");
+                        return;
+                    }
+
+                    $holder->addPermission(InheritanceNode::builder($group->getName())->value($value)->build());
+                    $sender->sendMessage("Permission '$node' set to " . ($value ? "true" : "false"));
+                });
+                break;
+
+            case "remove":
+                $loader(function (PermissionHolder $holder) use ($sender, $args) {
+                    $node = array_shift($args);
+                    if ($node === null) {
+                        $sender->sendMessage("§cNo node specified.");
+                        return;
+                    }
+
+                    $group = NovaPermsPlugin::getGroupManager()->getIfLoaded($node);
+                    if (!$group instanceof Group) {
+                        $sender->sendMessage("target group not found");
+                        return;
+                    }
+                    $groupName = $group->getName();
+
+                    if($holder instanceof Group && $holder->getName() === strtolower($node)) {
+                        $sender->sendMessage("error");
+                        return;
+                    }
+
+                    if ($holder->removePermission($node)) {
+                        $sender->sendMessage("§aParent '$node' unset.");
+                    } else {
+                        $sender->sendMessage("§cParent '$node' not found.");
+                    }
+                });
+                break;
+
+            case "addtemp":
+                $loader(function ($holder) use ($sender, $args) {
+                    $node = array_shift($args);
+                    if ($node === null) {
+                        $sender->sendMessage("§cError: No node specified.");
+                        return;
+                    }
+
+                    $value = true;
+                    if (!empty($args) && in_array(strtolower($args[0]), ['true', 'false'], true)) {
+                        $value = strtolower(array_shift($args)) === 'true';
+                    }
+
+                    $durationStr = array_shift($args);
+                    if ($durationStr === null) {
+                        $sender->sendMessage("§cError: No duration specified.");
+                        return;
+                    }
+
+                    $seconds = Duration::fromString($durationStr)->getSeconds();
+                    $modifier = array_shift($args) ?? 'replace';
+                    if (!in_array($modifier, ['accumulate', 'replace', 'deny'], true)) {
+                        $modifier = 'replace';
+                    }
+
+                    if ($holder->setTempPermission($holder, $node, $value, $seconds, $modifier)) {
+                        $sender->sendMessage(
+                            "§aTemporary permission '$node' set to " .
+                            ($value ? "true" : "false") .
+                            " for " . Duration::ofSeconds($seconds)
+                        );
+                    } else {
+                        $sender->sendMessage("§cPermission '$node' denied by modifier.");
+                    }
+                });
+                break;
+
+            case "removetemp":
+                $loader(function ($holder) use ($sender, $args) {
+                    $node = array_shift($args);
+                    if ($node === null) {
+                        $sender->sendMessage("§cError: No node specified.");
+                        return;
+                    }
+
+                    $durationStr = array_shift($args);
+                    $seconds = $durationStr !== null
+                        ? Duration::fromString($durationStr)->getSeconds()
+                        : null;
+
+                    if ($holder->unsetTempPermission($holder, $node, $seconds)) {
+                        $sender->sendMessage("§aTemporary permission '$node' unset.");
+                    } else {
+                        $sender->sendMessage("§cPermission '$node' not found.");
+                    }
+                });
+                break;
         }
     }
+
+
 
 }

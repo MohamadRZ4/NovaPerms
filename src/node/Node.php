@@ -5,7 +5,7 @@ namespace MohamadRZ\NovaPerms\node;
 
 use MohamadRZ\NovaPerms\context\ContextSet;
 
-abstract class AbstractNode implements NodeInterface
+abstract class Node implements NodeInterface
 {
     protected string $key;
     protected ContextSet $contextSet;
@@ -39,6 +39,6 @@ abstract class AbstractNode implements NodeInterface
     public function toNodeString(): string { return $this->key; }
     abstract public function getType(): string;
 
-    /** @return AbstractNodeBuilder */
+    /** @return NodeBuilder */
     abstract public function toBuilder();
 }

@@ -2,10 +2,10 @@
 
 namespace MohamadRZ\NovaPerms\node\Types;
 
-use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
+use MohamadRZ\NovaPerms\node\Node;
+use MohamadRZ\NovaPerms\node\NodeBuilder;
 
-class RegexPermission extends AbstractNode
+class RegexPermission extends Node
 {
     public static function builder(string $pattern): RegexNodeBuilder
     {
@@ -31,7 +31,7 @@ class RegexPermission extends AbstractNode
     }
 }
 
-class RegexNodeBuilder extends AbstractNodeBuilder
+class RegexNodeBuilder extends NodeBuilder
 {
     private string $pattern;
 

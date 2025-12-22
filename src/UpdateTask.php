@@ -4,7 +4,7 @@ namespace MohamadRZ\NovaPerms;
 
 use MohamadRZ\NovaPerms\model\PermissionHolder;
 use MohamadRZ\NovaPerms\model\User;
-use MohamadRZ\NovaPerms\node\AbstractNode;
+use MohamadRZ\NovaPerms\node\Node;
 use MohamadRZ\NovaPerms\utils\Duration;
 use pocketmine\scheduler\CancelTaskException;
 use pocketmine\scheduler\Task;

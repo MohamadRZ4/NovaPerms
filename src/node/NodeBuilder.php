@@ -5,7 +5,7 @@ namespace MohamadRZ\NovaPerms\node;
 
 use MohamadRZ\NovaPerms\context\ContextSet;
 
-abstract class AbstractNodeBuilder
+abstract class NodeBuilder
 {
     protected string $key;
     protected bool $value = true;
@@ -33,5 +33,5 @@ abstract class AbstractNodeBuilder
         return $this;
     }
 
-    abstract public function build(): AbstractNode;
+    abstract public function build(): Node;
 }

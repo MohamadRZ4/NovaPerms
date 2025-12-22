@@ -2,10 +2,10 @@
 
 namespace MohamadRZ\NovaPerms\node\Types;
 
-use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
+use MohamadRZ\NovaPerms\node\Node;
+use MohamadRZ\NovaPerms\node\NodeBuilder;
 
-class PermissionNode extends AbstractNode
+class PermissionNode extends Node
 {
     public static function builder(string $key): PermissionNodeBuilder
     {
@@ -23,7 +23,7 @@ class PermissionNode extends AbstractNode
     }
 }
 
-class PermissionNodeBuilder extends AbstractNodeBuilder
+class PermissionNodeBuilder extends NodeBuilder
 {
     public function __construct(string $key) { $this->key = $key; parent::__construct(); }
 

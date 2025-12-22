@@ -3,10 +3,10 @@
 namespace MohamadRZ\NovaPerms\node\Types;
 
 use MohamadRZ\NovaPerms\context\ContextSet;
-use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
+use MohamadRZ\NovaPerms\node\Node;
+use MohamadRZ\NovaPerms\node\NodeBuilder;
 
-class WeightNode extends AbstractNode
+class WeightNode extends Node
 {
     private int $weight;
 
@@ -38,7 +38,7 @@ class WeightNode extends AbstractNode
     }
 }
 
-class WeightNodeBuilder extends AbstractNodeBuilder
+class WeightNodeBuilder extends NodeBuilder
 {
     private int $weight;
     public function __construct(int $weight) { $this->weight = $weight; parent::__construct();}

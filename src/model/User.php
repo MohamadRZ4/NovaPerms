@@ -4,7 +4,9 @@ namespace MohamadRZ\NovaPerms\model;
 
 use MohamadRZ\NovaPerms\graph\PermissionResolver;
 use MohamadRZ\NovaPerms\graph\ResolverConfig;
-use MohamadRZ\NovaPerms\node\AbstractNode;
+use MohamadRZ\NovaPerms\model\primarygroup\PrimaryGroupFactory;
+use MohamadRZ\NovaPerms\model\primarygroup\PrimaryGroupHolder;
+use MohamadRZ\NovaPerms\node\Node;
 use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use pocketmine\permission\PermissionManager;
@@ -144,17 +146,17 @@ class User extends PermissionHolder
         });
     }
 
-    public function addPermission(AbstractNode|string|array $nodes, bool $value = true): void
+    public function addPermission(Node $node, bool $value = true): void
     {
-        $this->runWhenInitialized(function() use ($nodes, $value) {
-            parent::addPermission($nodes, $value);
+        $this->runWhenInitialized(function() use ($node, $value) {
+            parent::addPermission($node, $value);
             $this->updatePermissions();
         });
     }
 
-    public function removePermission(AbstractNode|array|string $nodes): bool
+    public function removePermission(Node $node): bool
     {
-        $isChanged = parent::removePermission($nodes);
+        $isChanged = parent::removePermission($node);
         if ($isChanged) {
             $this->runWhenInitialized(function() {
                 $this->updatePermissions();

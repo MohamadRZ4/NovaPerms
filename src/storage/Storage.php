@@ -2,19 +2,21 @@
 
 namespace MohamadRZ\NovaPerms\storage;
 
+use MohamadRZ\NovaPerms\bulkupdate\BulkUpdate;
+use MohamadRZ\NovaPerms\bulkupdate\BulkUpdateStatistics;
 use MohamadRZ\NovaPerms\model\Group;
 use MohamadRZ\NovaPerms\model\GroupManager;
 use MohamadRZ\NovaPerms\model\PermissionHolder;
 use MohamadRZ\NovaPerms\model\User;
 use MohamadRZ\NovaPerms\node\serialize\NodeDeserializer;
 use MohamadRZ\NovaPerms\node\serialize\NodeSerializer;
+use MohamadRZ\NovaPerms\node\Types\InheritanceNode;
 use MohamadRZ\NovaPerms\NovaPermsPlugin;
 use pocketmine\promise\Promise;
 use pocketmine\promise\PromiseResolver;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
 use poggit\libasynql\SqlError;
-
 
 class Storage implements IStorage
 {
@@ -25,32 +27,20 @@ class Storage implements IStorage
     {
         $plugin = NovaPermsPlugin::getInstance();
         $config = $plugin->getConfigManager()->getDatabase();
-
         $this->name = strtolower($config["type"] ?? "sqlite");
-        $prettyNames = [
-            "sqlite" => "SQLite",
-            "mysql"  => "MySQL"
-        ];
 
-        $displayName = $prettyNames[strtolower($this->name)] ?? ucfirst($this->name);
-
-        NovaPermsPlugin::getInstance()->getLogger()->info(
-            "Loading storage provider... [".$displayName."]"
-        );
+        $displayName = ["sqlite" => "SQLite", "mysql" => "MySQL"][$this->name] ?? ucfirst($this->name);
+        $plugin->getLogger()->info("Loading storage provider... [{$displayName}]");
 
         $this->database = libasynql::create($plugin, $config, [
             "sqlite" => "schema/sqlite.sql",
-            "mysql"  => "schema/mysql.sql"
+            "mysql" => "schema/mysql.sql"
         ]);
-
-        $this->database->executeGeneric("init.users");
-        $this->database->waitAll();
-        $this->database->executeGeneric("init.groups");
-        $this->database->waitAll();
-        $this->database->executeGeneric("init.user_permissions");
-        $this->database->waitAll();
-        $this->database->executeGeneric("init.group_permissions");
-        $this->database->waitAll();
+ 
+        foreach (['users', 'groups', 'user_permissions', 'group_permissions'] as $table) {
+            $this->database->executeGeneric("init.{$table}");
+            $this->database->waitAll();
+        }
     }
 
     public function getDatabase(): DataConnector
@@ -76,29 +66,36 @@ class Storage implements IStorage
         $resolver = new PromiseResolver();
         $user = NovaPermsPlugin::getUserManager()->getOrMake($username);
 
-        $this->database->executeSelect(
-            "data.users.get",
-            ["username" => $username],
-            function (array $rows) use ($username, $user, $resolver) {
-                if (count($rows) > 0) {
-                    if (isset($rows[0]['primary_group'])) {
-                        $user->getPrimaryGroup()->setStoredValue($rows[0]['primary_group']);
-                    } else {
-                        $user->getPrimaryGroup()->setStoredValue(GroupManager::DEFAULT_GROUP);
-                    }
+        $sql = "SELECT u.primary_group, up.permission, up.value, up.expiry 
+                FROM Users u 
+                LEFT JOIN UserPermissions up ON u.username = up.username 
+                WHERE u.username = :username";
+
+        $this->database->executeImplRaw(
+            [$sql],
+            [['username' => $username]],
+            [\poggit\libasynql\SqlThread::MODE_SELECT],
+            function($results) use ($user, $resolver) {
+                $rows = $results[0]->getRows();
+
+                if (!empty($rows)) {
+                    $user->getPrimaryGroup()->setStoredValue($rows[0]['primary_group'] ?? GroupManager::DEFAULT_GROUP);
 
                     $nodes = $this->rowsToNodes($rows);
                     $perm = [];
-                    foreach ($nodes as $node) {
-                        $perm[$node->getKey()] = $node;
-                    }
+                    foreach ($nodes as $node) $perm[$node->getKey()] = $node;
                     $user->setPermissions($perm);
+
+                    $primaryGroupName = $user->getPrimaryGroup()->getStoredValue();
+                    if ($primaryGroupName && !isset($perm["group.{$primaryGroupName}"])) {
+                        $inheritNode = InheritanceNode::builder($primaryGroupName)->build();
+                        $user->addPermission($inheritNode);
+                    }
                 }
+
                 $resolver->resolve($user);
             },
-            function () use ($resolver) {
-                $resolver->reject();
-            }
+            fn() => $resolver->reject()
         );
 
         return $resolver->getPromise();
@@ -107,113 +104,82 @@ class Storage implements IStorage
     public function saveUser(User $user): Promise
     {
         $resolver = new PromiseResolver();
+        $serialized = NodeSerializer::serialize($user->getOwnPermissionNodes());
 
-        $this->database->executeChange(
-            "data.users.set",
-            [
-                "username" => $user->getName(),
-                "primary_group" => $user->getPrimaryGroup()->getStoredValue() ?? GroupManager::DEFAULT_GROUP
-            ],
-            function() use ($user, $resolver) {
-                $this->database->executeGeneric(
-                    "data.user_permissions.deleteAll",
-                    ["username" => $user->getName()],
-                    function() use ($user, $resolver) {
-                        $this->insertUserPermissionsSequentially($user, $resolver);
-                    },
-                    fn() => $resolver->reject()
-                );
-            },
+        $queries = [
+            "INSERT OR REPLACE INTO Users(username, primary_group) VALUES (:username, :primary_group)",
+            "DELETE FROM UserPermissions WHERE username = :username"
+        ];
+        $args = [
+            ['username' => $user->getName(), 'primary_group' => $user->getPrimaryGroup()->getStoredValue()],
+            ['username' => $user->getName()]
+        ];
+        $modes = [\poggit\libasynql\SqlThread::MODE_GENERIC, \poggit\libasynql\SqlThread::MODE_GENERIC];
+
+        foreach ($serialized as $node) {
+            $queries[] = "INSERT INTO UserPermissions(username, permission, value, expiry) VALUES (:username, :permission, :value, :expiry)";
+            $args[] = [
+                'username' => $user->getName(),
+                'permission' => $node['name'],
+                'value' => $node['value'],
+                'expiry' => $node['expire']
+            ];
+            $modes[] = \poggit\libasynql\SqlThread::MODE_INSERT;
+        }
+
+        $this->database->executeImplRaw(
+            $queries,
+            $args,
+            $modes,
+            fn() => $resolver->resolve(true),
             fn() => $resolver->reject()
         );
 
         return $resolver->getPromise();
-    }
-
-    protected function insertUserPermissionsSequentially(User $user, PromiseResolver $resolver): void
-    {
-        $nodes = $user->getOwnPermissionNodes();
-
-        if (empty($nodes)) {
-            $resolver->resolve(true);
-            return;
-        }
-
-        $serializedNodes = NodeSerializer::serialize($nodes);
-        $this->insertUserPermissionRecursive($user->getName(), $serializedNodes, 0, $resolver);
-    }
-
-    protected function insertUserPermissionRecursive(string $username, array $serializedNodes, int $index, PromiseResolver $resolver): void
-    {
-        if ($index >= count($serializedNodes)) {
-            $resolver->resolve(true);
-            return;
-        }
-
-        $nodeData = $serializedNodes[$index];
-
-        $this->database->executeInsert(
-            "data.user_permissions.add",
-            [
-                "username" => $username,
-                "permission" => $nodeData['name'],
-                "value" => $nodeData['value'],
-                "expiry" => $nodeData['expire']
-            ],
-            function() use ($username, $serializedNodes, $index, $resolver) {
-                $this->insertUserPermissionRecursive($username, $serializedNodes, $index + 1, $resolver);
-            },
-            fn() => $resolver->reject()
-        );
     }
 
     public function loadUsers(array $usernames): Promise
     {
         $resolver = new PromiseResolver();
-
         if (empty($usernames)) {
             $resolver->resolve([]);
             return $resolver->getPromise();
         }
 
-        $users = [];
-        $this->loadUsersSequentially($usernames, 0, $users, $resolver);
-
-        return $resolver->getPromise();
-    }
-
-    protected function loadUsersSequentially(array $usernames, int $index, array &$users, PromiseResolver $resolver): void
-    {
-        if ($index >= count($usernames)) {
-            $resolver->resolve($users);
-            return;
+        $promises = [];
+        foreach ($usernames as $username) {
+            $promises[] = $this->loadUser($username);
         }
 
-        $this->loadUser($usernames[$index])->onCompletion(
-            function($user) use ($usernames, $index, &$users, $resolver) {
-                $users[] = $user;
-                $this->loadUsersSequentially($usernames, $index + 1, $users, $resolver);
-            },
+        Promise::all($promises)->onCompletion(
+            fn($users) => $resolver->resolve($users),
             fn() => $resolver->reject()
         );
+
+        return $resolver->getPromise();
     }
 
     public function loadGroup(string $groupName): Promise
     {
         $resolver = new PromiseResolver();
 
-        $this->database->executeSelect(
-            "data.groups.get",
-            ["name" => $groupName],
-            function(array $rows) use ($groupName, $resolver) {
-                $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
+        $sql = "SELECT gp.permission, gp.value, gp.expiry 
+                FROM Groups g 
+                LEFT JOIN GroupPermissions gp ON g.name = gp.group_name 
+                WHERE g.name = :name";
 
-                if (count($rows) > 0) {
+        $this->database->executeImplRaw(
+            [$sql],
+            [['name' => $groupName]],
+            [\poggit\libasynql\SqlThread::MODE_SELECT],
+            function($results) use ($groupName, $resolver) {
+                $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
+                $rows = $results[0]->getRows();
+
+                if (!empty($rows)) {
                     $nodes = $this->rowsToNodes($rows);
                     $perm = [];
-                    foreach ($nodes as $node) {
-                        $perm[$node->getKey()] = $node;
-                    }
+                    foreach ($nodes as $node) $perm[$node->getKey()] = $node;
                     $group->setPermissions($perm);
                 }
 
@@ -228,90 +194,67 @@ class Storage implements IStorage
     public function saveGroup(Group $group): Promise
     {
         $resolver = new PromiseResolver();
+        $serialized = NodeSerializer::serialize($group->getOwnPermissionNodes());
 
-        $this->database->executeChange(
-            "data.groups.add",
-            ["name" => $group->getName()],
-            function() use ($group, $resolver) {
-                $this->database->executeGeneric(
-                    "data.group_permissions.deleteAll",
-                    ["group_name" => $group->getName()],
-                    function() use ($group, $resolver) {
-                        $this->insertGroupPermissionsSequentially($group, $resolver);
-                    },
-                    fn() => $resolver->reject()
-                );
-            },
+        $queries = [
+            "INSERT OR IGNORE INTO Groups(name) VALUES (:name)",
+            "DELETE FROM GroupPermissions WHERE group_name = :group_name"
+        ];
+        $args = [
+            ['name' => $group->getName()],
+            ['group_name' => $group->getName()]
+        ];
+        $modes = [\poggit\libasynql\SqlThread::MODE_GENERIC, \poggit\libasynql\SqlThread::MODE_GENERIC];
+
+        foreach ($serialized as $node) {
+            $queries[] = "INSERT INTO GroupPermissions(group_name, permission, value, expiry) VALUES (:group_name, :permission, :value, :expiry)";
+            $args[] = [
+                'group_name' => $group->getName(),
+                'permission' => $node['name'],
+                'value' => $node['value'],
+                'expiry' => $node['expire']
+            ];
+            $modes[] = \poggit\libasynql\SqlThread::MODE_INSERT;
+        }
+
+        $this->database->executeImplRaw(
+            $queries,
+            $args,
+            $modes,
+            fn() => $resolver->resolve(true),
             fn() => $resolver->reject()
         );
 
         return $resolver->getPromise();
     }
 
-    protected function insertGroupPermissionsSequentially(Group $group, PromiseResolver $resolver): void
-    {
-        $nodes = $group->getOwnPermissionNodes();
-
-        if (empty($nodes)) {
-            $resolver->resolve(true);
-            return;
-        }
-
-        $serializedNodes = NodeSerializer::serialize($nodes);
-        $this->insertGroupPermissionRecursive($group->getName(), $serializedNodes, 0, $resolver);
-    }
-
-    protected function insertGroupPermissionRecursive(string $groupName, array $serializedNodes, int $index, PromiseResolver $resolver): void
-    {
-        if ($index >= count($serializedNodes)) {
-            $resolver->resolve(true);
-            return;
-        }
-
-        $nodeData = $serializedNodes[$index];
-
-        $this->database->executeInsert(
-            "data.group_permissions.add",
-            [
-                "group_name" => $groupName,
-                "permission" => $nodeData['name'],
-                "value" => $nodeData['value'],
-                "expiry" => $nodeData['expire']
-            ],
-            function() use ($groupName, $serializedNodes, $index, $resolver) {
-                $this->insertGroupPermissionRecursive($groupName, $serializedNodes, $index + 1, $resolver);
-            },
-            fn() => $resolver->reject()
-        );
-    }
-
     public function loadAllGroup(): Promise
     {
         $resolver = new PromiseResolver();
 
-        $this->database->executeSelect(
-            "data.groups.getAll",
-            [],
-            function(array $rows) use ($resolver) {
+        $sql = "SELECT g.name, gp.permission, gp.value, gp.expiry 
+                FROM Groups g 
+                LEFT JOIN GroupPermissions gp ON g.name = gp.group_name";
+
+        $this->database->executeImplRaw(
+            [$sql],
+            [[]],
+            [\poggit\libasynql\SqlThread::MODE_SELECT],
+            function($results) use ($resolver) {
+                $rows = $results[0]->getRows();
                 $groupsData = [];
 
                 foreach ($rows as $row) {
-                    $groupName = $row['name'];
-                    if (!isset($groupsData[$groupName])) {
-                        $groupsData[$groupName] = [];
-                    }
-                    if (isset($row['permission'])) {
-                        $groupsData[$groupName][] = $row;
-                    }
+                    $name = $row['name'];
+                    if (!isset($groupsData[$name])) $groupsData[$name] = [];
+                    if (isset($row['permission'])) $groupsData[$name][] = $row;
                 }
 
-                foreach ($groupsData as $groupName => $groupRows) {
-                    $group = NovaPermsPlugin::getGroupManager()->getOrMake($groupName);
+                foreach ($groupsData as $name => $groupRows) {
+                    $group = NovaPermsPlugin::getGroupManager()->getOrMake($name);
                     $nodes = $this->rowsToNodes($groupRows);
                     $perm = [];
-                    foreach ($nodes as $node) {
-                        $perm[$node->getKey()] = $node;
-                    }
+                    foreach ($nodes as $node) $perm[$node->getKey()] = $node;
                     $group->setPermissions($perm);
                     NovaPermsPlugin::getGroupManager()->registerGroup($group);
                 }
@@ -334,33 +277,27 @@ class Storage implements IStorage
             return $resolver->getPromise();
         }
 
-        $this->saveGroupsSequentially(array_values($groups), 0, $resolver);
-
-        return $resolver->getPromise();
-    }
-
-    protected function saveGroupsSequentially(array $groups, int $index, PromiseResolver $resolver): void
-    {
-        if ($index >= count($groups)) {
-            $resolver->resolve(true);
-            return;
+        $promises = [];
+        foreach ($groups as $group) {
+            $promises[] = $this->saveGroup($group);
         }
 
-        $this->saveGroup($groups[$index])->onCompletion(
-            function() use ($groups, $index, $resolver) {
-                $this->saveGroupsSequentially($groups, $index + 1, $resolver);
-            },
+        Promise::all($promises)->onCompletion(
+            fn() => $resolver->resolve(true),
             fn() => $resolver->reject()
         );
+
+        return $resolver->getPromise();
     }
 
     public function deleteGroup(string $groupName): Promise
     {
         $resolver = new PromiseResolver();
 
-        $this->database->executeGeneric(
-            "data.groups.delete",
-            ["name" => $groupName],
+        $this->database->executeImplRaw(
+            ["DELETE FROM Groups WHERE name = :name"],
+            [['name' => $groupName]],
+            [\poggit\libasynql\SqlThread::MODE_GENERIC],
             function() use ($groupName, $resolver) {
                 $group = NovaPermsPlugin::getGroupManager()->getIfLoaded($groupName);
                 if ($group !== null) {
@@ -368,9 +305,7 @@ class Storage implements IStorage
                 }
                 $resolver->resolve(true);
             },
-            function(SqlError $error) use ($resolver) {
-                $resolver->reject();
-            }
+            fn() => $resolver->reject()
         );
 
         return $resolver->getPromise();
@@ -390,13 +325,120 @@ class Storage implements IStorage
         return $resolver->getPromise();
     }
 
+    public function applyBulkUpdate(BulkUpdate $operation): Promise
+    {
+        $resolver = new PromiseResolver();
+        $startTime = microtime(true);
+        $stats = new BulkUpdateStatistics();
+
+        try {
+            $queries = $operation->buildQueries();
+            $sqlQueries = [];
+            $argsArray = [];
+            $modes = [];
+
+            foreach ($queries as $query) {
+                $sqlQueries[] = $query['sql'];
+                $argsArray[] = $query['params'];
+                $modes[] = \poggit\libasynql\SqlThread::MODE_GENERIC;
+            }
+
+            $this->database->executeImplRaw(
+                $sqlQueries,
+                $argsArray,
+                $modes,
+                function() use ($resolver, $operation, $stats, $startTime) {
+                    $stats->executionTime = microtime(true) - $startTime;
+
+                    if ($operation->isTrackStatistics()) {
+                        $this->collectBulkStats($operation, $stats)->onCompletion(
+                            function() use ($resolver, $stats, $operation) {
+                                $this->triggerUpdates($operation);
+                                $resolver->resolve($stats);
+                            },
+                            fn() => $resolver->reject()
+                        );
+                    } else {
+                        $this->triggerUpdates($operation);
+                        $resolver->resolve($stats);
+                    }
+                },
+                function($error) use ($resolver) {
+                    NovaPermsPlugin::getInstance()->getLogger()->error("Bulk update failed: " . ($error->getMessage() ?? 'Unknown'));
+                    $resolver->reject();
+                }
+            );
+        } catch (\Exception $e) {
+            NovaPermsPlugin::getInstance()->getLogger()->error("Bulk update error: " . $e->getMessage());
+            $resolver->reject();
+        }
+
+        return $resolver->getPromise();
+    }
+
+    protected function collectBulkStats(BulkUpdate $operation, BulkUpdateStatistics $stats): Promise
+    {
+        $resolver = new PromiseResolver();
+        $queries = [];
+        $args = [];
+
+        if ($operation->shouldUpdateUsers()) {
+            $queries[] = "SELECT COUNT(DISTINCT username) as count FROM UserPermissions";
+            $args[] = [];
+        }
+
+        if ($operation->shouldUpdateGroups()) {
+            $queries[] = "SELECT COUNT(DISTINCT group_name) as count FROM GroupPermissions";
+            $args[] = [];
+        }
+
+        if (empty($queries)) {
+            $resolver->resolve(true);
+            return $resolver->getPromise();
+        }
+
+        $modes = array_fill(0, count($queries), \poggit\libasynql\SqlThread::MODE_SELECT);
+
+        $this->database->executeImplRaw(
+            $queries,
+            $args,
+            $modes,
+            function($results) use ($stats, $operation, $resolver) {
+                $idx = 0;
+                if ($operation->shouldUpdateUsers()) {
+                    $stats->affectedUsers = (int)($results[$idx++]->getRows()[0]['count'] ?? 0);
+                }
+                if ($operation->shouldUpdateGroups()) {
+                    $stats->affectedGroups = (int)($results[$idx]->getRows()[0]['count'] ?? 0);
+                }
+                $resolver->resolve(true);
+            },
+            fn() => $resolver->reject()
+        );
+
+        return $resolver->getPromise();
+    }
+
+    protected function triggerUpdates(BulkUpdate $operation): void
+    {
+        if ($operation->shouldUpdateUsers()) {
+            foreach (NovaPermsPlugin::getUserManager()->getAllUsers() as $user) {
+                $user->updatePermissions();
+            }
+        }
+
+        if ($operation->shouldUpdateGroups()) {
+            foreach (NovaPermsPlugin::getGroupManager()->getAllGroups() as $group) {
+                PermissionHolder::updateUsersForGroup($group->getName());
+            }
+        }
+    }
+
     protected function rowsToNodes(array $rows): array
     {
         $rawData = [];
-
         foreach ($rows as $row) {
             if (!isset($row['permission'])) continue;
-
             $rawData[] = [
                 "name" => $row['permission'],
                 "value" => (bool)$row['value'],
@@ -407,9 +449,7 @@ class Storage implements IStorage
         try {
             return NodeDeserializer::deserialize($rawData);
         } catch (\Exception $e) {
-            NovaPermsPlugin::getInstance()->getLogger()->error(
-                "Error deserializing nodes: " . $e->getMessage()
-            );
+            NovaPermsPlugin::getInstance()->getLogger()->error("Deserialize error: " . $e->getMessage());
             return [];
         }
     }

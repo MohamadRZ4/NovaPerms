@@ -3,10 +3,10 @@
 namespace MohamadRZ\NovaPerms\node\Types;
 
 use MohamadRZ\NovaPerms\context\ContextSet;
-use MohamadRZ\NovaPerms\node\AbstractNode;
-use MohamadRZ\NovaPerms\node\AbstractNodeBuilder;
+use MohamadRZ\NovaPerms\node\Node;
+use MohamadRZ\NovaPerms\node\NodeBuilder;
 
-class MetaNode extends AbstractNode
+class MetaNode extends Node
 {
     private string $metaKey;
     private string $metaValue;
@@ -42,7 +42,7 @@ class MetaNode extends AbstractNode
     }
 }
 
-class MetaNodeBuilder extends AbstractNodeBuilder
+class MetaNodeBuilder extends NodeBuilder
 {
     private string $metaKey;
     private string $metaValue;
